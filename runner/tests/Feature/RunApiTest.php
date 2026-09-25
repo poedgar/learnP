@@ -46,6 +46,15 @@ class RunApiTest extends TestCase
             ->assertJsonPath('stdout', "a\u{FFFD}b");
     }
 
+    public function test_file_contents_run_exactly_as_sent(): void
+    {
+        // PHP eats exactly one newline immediately after a closing tag, so there is no
+        // newline between "x" and "trailing" in the expected output below.
+        $this->signedPost($this->runBody("   leading\n<?php echo 'x';?>\ntrailing   \n"))
+            ->assertOk()
+            ->assertJsonPath('stdout', "   leading\nxtrailing   \n");
+    }
+
     public function test_unsigned_requests_are_rejected(): void
     {
         $this->postJson('/run', $this->runBody('<?php echo 1;'))->assertUnauthorized();
@@ -90,6 +99,13 @@ class RunApiTest extends TestCase
     public function test_the_entry_must_be_one_of_the_files(): void
     {
         $this->signedPost(['files' => ['main.php' => '<?php'], 'entry' => 'other.php'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('entry');
+    }
+
+    public function test_the_entry_must_be_a_string(): void
+    {
+        $this->signedPost(['files' => ['main.php' => '<?php'], 'entry' => ['main.php']])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('entry');
     }

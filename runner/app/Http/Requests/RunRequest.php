@@ -60,7 +60,7 @@ class RunRequest extends FormRequest
                     $validator->errors()->add('files', 'Files may total at most '.self::MAX_TOTAL_BYTES.' bytes.');
                 }
 
-                if (! array_key_exists((string) $this->input('entry'), $files)) {
+                if (is_string($this->input('entry')) && ! array_key_exists($this->input('entry'), $files)) {
                     $validator->errors()->add('entry', 'The entry must be one of the files.');
                 }
             },
