@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\RunController;
+use App\Http\Middleware\VerifyRunnerSignature;
 use Illuminate\Support\Facades\Route;
 
-// POST /run is added with the signature middleware in a later task.
+Route::post('run', RunController::class)->middleware(VerifyRunnerSignature::class)->name('run');
