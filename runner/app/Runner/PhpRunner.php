@@ -47,7 +47,9 @@ class PhpRunner
      */
     private function execute(string $directory, string $entry): array
     {
-        $process = new Process([$this->phpBinary(), '-n', ...$this->iniFlags($directory), $entry], $directory);
+        // Symfony merges the parent environment into the child's; `false` removes a variable.
+        $environment = array_fill_keys(array_keys(getenv() + $_ENV + $_SERVER), false);
+        $process = new Process([$this->phpBinary(), '-n', ...$this->iniFlags($directory), $entry], $directory, $environment);
         // PHP's max_execution_time stops busy loops with a proper error; this catches code that sleeps or blocks.
         $process->setTimeout($this->timeLimitSeconds + 1);
 
@@ -86,6 +88,11 @@ class PhpRunner
     private function iniFlags(string $directory): array
     {
         $settings = [
+            'open_basedir' => $directory,
+            'allow_url_fopen' => '0',
+            'allow_url_include' => '0',
+            'ffi.enable' => '0',
+            'disable_functions' => implode(',', DisabledFunctions::for($this->phpBinary())),
             'memory_limit' => '64M',
             'max_execution_time' => (string) $this->timeLimitSeconds,
             'display_errors' => 'stdout',
