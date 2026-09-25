@@ -8,7 +8,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * The reference solution stays on the server. SQL answers are checked by
- * ChallengeCheckController; PHP answers run in the browser against `checks`.
+ * ChallengeCheckController; PHP answers run against `checks`, in the browser
+ * (web app) or on the runner through ChallengeCheckController (mobile app).
  *
  * @mixin Challenge
  */

@@ -69,6 +69,13 @@ of the challenge's `checks` (PHP snippets that `return true`, or a message expla
 runs in the browser and in `tests/Feature/PhpChallengeHarnessTest.php`, which proves every
 reference solution passes its checks.
 
+The mobile app can't run WebAssembly PHP, so for PHP lessons `POST /api/lessons/{lesson}/run`
+and `POST /api/challenges/{challenge}/check` (with `{ "code": "..." }`) run the code on the
+**runner**, a separate Laravel app in `../runner` that holds no data or secrets
+(`App\Sandbox\HttpPhpSandbox`). Checks use the same `check-harness.php`. To use these
+endpoints locally, start the runner (see `../runner/README.md`) and set `RUNNER_URL` and
+`RUNNER_SECRET` in `.env`. Without it they return 503.
+
 ## Adding content
 
 - Lesson theory: `database/content/<course>/*.md`

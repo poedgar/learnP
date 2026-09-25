@@ -113,7 +113,9 @@ class CourseApiTest extends TestCase
         $lesson = Lesson::where('slug', 'classes-and-objects')->firstOrFail();
         $challenge = Challenge::where('lesson_id', $lesson->id)->firstOrFail();
 
-        $this->postJson("/api/lessons/{$lesson->id}/run", ['sql' => 'SELECT 1'])->assertNotFound();
-        $this->postJson("/api/challenges/{$challenge->id}/check", ['sql' => 'SELECT 1'])->assertNotFound();
+        $this->postJson("/api/lessons/{$lesson->id}/run", ['sql' => 'SELECT 1'])
+            ->assertUnprocessable()->assertJsonValidationErrors('code');
+        $this->postJson("/api/challenges/{$challenge->id}/check", ['sql' => 'SELECT 1'])
+            ->assertUnprocessable()->assertJsonValidationErrors('code');
     }
 }
