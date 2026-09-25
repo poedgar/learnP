@@ -1,0 +1,186 @@
+/*
+ * Only Tailwind's reset and theme: every style here is hand-written, and the
+ * utility classes would collide with plain class names such as .contents.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+
+:root {
+    color-scheme: light;
+
+    --ink: #18233f;
+    --ink-soft: #2b3a61;
+    --paper: #f4f6fa;
+    --surface: #ffffff;
+    --line: #d8deea;
+    --muted: #5b6680;
+
+    /* Saffron highlighter: the one accent. Used for focus, the active step and matched rows. */
+    --highlight: #f5b83d;
+    --highlight-soft: #fdf0cf;
+
+    --ok: #2f8f5b;
+    --ok-soft: #e3f3ea;
+    --bad: #c4424e;
+    --bad-soft: #fbe6e8;
+
+    --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
+    --font-code: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    --radius-sm: 4px;
+    --radius: 8px;
+    --radius-lg: 14px;
+}
+
+html {
+    background: var(--paper);
+}
+
+body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+    font-family: var(--font-display);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+
+code,
+pre,
+kbd {
+    font-family: var(--font-code);
+    /* Ligatures would draw -> as an arrow; learners need to see the characters they type. */
+    font-variant-ligatures: none;
+}
+
+:focus-visible {
+    outline: 3px solid var(--highlight);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+::selection {
+    background: var(--highlight-soft);
+}
+
+/* Buttons shared across pages. */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 120ms, border-color 120ms;
+}
+
+.btn:hover {
+    border-color: var(--ink-soft);
+}
+
+.btn:disabled {
+    opacity: 0.55;
+    cursor: progress;
+}
+
+.btn-primary {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--ink-soft);
+}
+
+.btn-quiet {
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+}
+
+.btn-quiet:hover {
+    color: var(--ink);
+    border-color: transparent;
+    background: rgb(24 35 63 / 0.06);
+}
+
+.kbd {
+    font-family: var(--font-code);
+    font-size: 0.72rem;
+    font-weight: 400;
+    padding: 0.1rem 0.35rem;
+    border-radius: var(--radius-sm);
+    background: rgb(255 255 255 / 0.16);
+}
+
+/* Keyboard shortcuts mean nothing on touch screens. */
+@media (pointer: coarse) {
+    .kbd {
+        display: none;
+    }
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* SQL token colours, shared with the editor theme (resources/js/components/SqlEditor.vue). */
+.tok-keyword {
+    color: #f5b83d;
+    font-weight: 600;
+}
+
+.tok-string {
+    color: #9fdcb3;
+}
+
+.tok-number,
+.tok-bool,
+.tok-null {
+    color: #f7a6ae;
+}
+
+.tok-comment {
+    color: #8492b3;
+    font-style: italic;
+}
+
+.tok-typeName,
+.tok-className {
+    color: #9cc3ff;
+}
+
+.tok-meta {
+    color: #8492b3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

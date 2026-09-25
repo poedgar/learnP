@@ -1,0 +1,80 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Challenge;
+use Database\Seeders\DatabaseSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ChallengeCheckApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected $seeder = DatabaseSeeder::class;
+
+    protected $seed = true;
+
+    private function check(string $title, string $sql)
+    {
+        $challenge = Challenge::where('title', $title)->firstOrFail();
+
+        return $this->postJson("/api/challenges/{$challenge->id}/check", ['sql' => $sql]);
+    }
+
+    public function test_every_seeded_solution_passes_its_own_challenge(): void
+    {
+        foreach (Challenge::whereNull('checks')->get() as $challenge) {
+            $this->postJson("/api/challenges/{$challenge->id}/check", ['sql' => $challenge->solution])
+                ->assertOk()
+                ->assertJsonPath('passed', true);
+        }
+    }
+
+    public function test_an_equivalent_query_passes(): void
+    {
+        $this->check('Science fiction sale', "select title, price - price * 0.2 as discounted from books where genre = 'Science Fiction' order by title")
+            ->assertJsonPath('passed', true);
+    }
+
+    public function test_wrong_number_of_columns_is_explained(): void
+    {
+        $this->check('Titles and authors', 'SELECT title FROM books')
+            ->assertJsonPath('passed', false)
+            ->assertJsonPath('message', 'The result should have 2 columns, yours has 1.')
+            ->assertJsonPath('expected.columns', ['title', 'author']);
+    }
+
+    public function test_wrong_number_of_rows_is_explained(): void
+    {
+        $this->check('Top three by price', 'SELECT title, price FROM books ORDER BY price DESC')
+            ->assertJsonPath('passed', false)
+            ->assertJsonPath('message', 'The result should have 3 rows, yours has 16.');
+    }
+
+    public function test_row_order_is_checked_when_it_matters(): void
+    {
+        $this->check('The oldest classics', 'SELECT title, published_year FROM books WHERE published_year < 1900 ORDER BY published_year DESC')
+            ->assertJsonPath('passed', false)
+            ->assertJsonPath('message', 'You have the right rows, but in the wrong order. Check your ORDER BY.');
+    }
+
+    public function test_row_order_is_ignored_when_it_does_not_matter(): void
+    {
+        $this->check('Titles and authors', 'SELECT title, author FROM books ORDER BY author DESC')
+            ->assertJsonPath('passed', true);
+    }
+
+    public function test_sql_errors_fail_the_check_and_include_the_error(): void
+    {
+        $this->check('Titles and authors', 'SELECT title, writer FROM books')
+            ->assertJsonPath('passed', false)
+            ->assertJsonPath('run.error.message', 'No such column: writer');
+    }
+
+    public function test_the_last_result_table_is_the_one_checked(): void
+    {
+        $this->check('Titles and authors', 'SELECT 1; SELECT title, author FROM books;')
+            ->assertJsonPath('passed', true);
+    }
+}
