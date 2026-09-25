@@ -22,6 +22,9 @@ final class DisabledFunctions
         'fsockopen', 'pfsockopen',
         'gethostbyname', 'gethostbynamel', 'gethostbyaddr', 'dns_get_record', 'dns_check_record', 'checkdnsrr', 'getmxrr', 'dns_get_mx',
         'mysqli_connect', 'mysqli_real_connect', 'pg_connect', 'pg_pconnect',
+        // Would let learner code bring the `php` stream wrapper back after the sandbox
+        // prepend unregisters it, reopening the php://fd/N inherited-descriptor loophole.
+        'stream_wrapper_restore',
     ];
 
     private const PREFIXES = [

@@ -57,6 +57,7 @@ class PhpRunnerRestrictionsTest extends TestCase
             'stream_socket_client' => ['stream_socket_client("tcp://example.com:80");', 'stream_socket_client'],
             'gethostbyname' => ['gethostbyname("example.com");', 'gethostbyname'],
             'symlink' => ['symlink("/etc/passwd", "p");', 'symlink'],
+            'stream_wrapper_restore' => ['stream_wrapper_restore("php");', 'stream_wrapper_restore'],
         ];
     }
 
@@ -90,19 +91,71 @@ class PhpRunnerRestrictionsTest extends TestCase
         $this->assertStringContainsString('wrapper is disabled', $this->runCode('<?php file_get_contents("http://example.com");'));
     }
 
+    public function test_inherited_file_descriptors_cannot_be_reached(): void
+    {
+        $marker = 'do-not-leak-'.bin2hex(random_bytes(16));
+        $outsidePath = tempnam(sys_get_temp_dir(), 'runner-fd-test-');
+        file_put_contents($outsidePath, $marker);
+        $handle = fopen($outsidePath, 'r');
+
+        try {
+            // Bounded reads, capped well under PhpRunner's maxOutputBytes (65536):
+            // some inherited fd in this range is a large/never-EOF stream (observed:
+            // fd 3 alone yields up to 65536 bytes), and an unbounded read on it fills
+            // PhpRunner's output budget and gets the process killed for truncation
+            // before the loop ever reaches the fd holding the marker — making the
+            // test pass vacuously without proving anything. Reading only a couple
+            // hundred bytes per fd keeps the whole run well under that budget.
+            $output = $this->runCode('<?php
+                echo "ran|";
+                for ($i = 0; $i < 256; $i++) {
+                    try {
+                        $h = @fopen("php://fd/$i", "r");
+                        if ($h) {
+                            echo @stream_get_contents($h, 200);
+                        }
+                    } catch (\Throwable $e) {
+                    }
+                }
+            ');
+        } finally {
+            fclose($handle);
+            unlink($outsidePath);
+        }
+
+        $this->assertStringStartsWith('ran|', $output);
+        $this->assertStringNotContainsString($marker, $output);
+    }
+
+    public function test_ordinary_output_still_works_after_the_sandbox_prepend(): void
+    {
+        $this->assertSame('ok', $this->runCode('<?php echo "ok";'));
+    }
+
+    public function test_the_stdout_constant_survives_unregistering_the_php_wrapper(): void
+    {
+        $this->assertSame('x', $this->runCode('<?php fwrite(STDOUT, "x");'));
+    }
+
     public function test_learner_code_sees_an_empty_environment(): void
     {
         $_ENV['RUNNER_SECRET'] = $_SERVER['RUNNER_SECRET'] = 'do-not-leak';
         putenv('RUNNER_SECRET=do-not-leak');
 
         try {
-            $output = $this->runCode('<?php echo json_encode(getenv()), "|", json_encode($_ENV), "|", isset($_SERVER["RUNNER_SECRET"]) ? "leak" : "clean";');
+            $output = $this->runCode('<?php echo json_encode(["env" => array_keys(getenv()), "ENV" => array_keys($_ENV), "secret" => getenv("RUNNER_SECRET"), "server" => isset($_SERVER["RUNNER_SECRET"])]);');
         } finally {
             unset($_ENV['RUNNER_SECRET'], $_SERVER['RUNNER_SECRET']);
             putenv('RUNNER_SECRET');
         }
 
-        $this->assertSame('[]|[]|clean', $output);
+        $result = json_decode($output, true);
+
+        // macOS adds __CF_USER_TEXT_ENCODING inside the child process.
+        $this->assertSame([], array_diff($result['env'], ['__CF_USER_TEXT_ENCODING']));
+        $this->assertSame([], array_diff($result['ENV'], ['__CF_USER_TEXT_ENCODING']));
+        $this->assertFalse($result['secret']);
+        $this->assertFalse($result['server']);
     }
 
     public function test_ffi_is_off(): void

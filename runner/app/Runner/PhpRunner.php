@@ -14,6 +14,15 @@ use Symfony\Component\Process\Process;
  */
 class PhpRunner
 {
+    // Unregistering the `php` stream wrapper closes the php://fd/N loophole: the child
+    // inherits the parent's open file descriptors (log files, DB/Redis sockets, the
+    // FastCGI connection), and php://fd lets learner code read them directly, bypassing
+    // both open_basedir and the disabled socket functions. No closing tag and no
+    // trailing newline, so this produces no stdout (display_errors goes to stdout too).
+    private const SANDBOX_PREPEND = <<<'PHP'
+        <?php stream_wrapper_unregister('php');
+        PHP;
+
     public function __construct(
         private readonly string $workRoot,
         private readonly int $timeLimitSeconds = 5,
@@ -35,6 +44,8 @@ class PhpRunner
             foreach ($files as $name => $contents) {
                 File::put($directory.DIRECTORY_SEPARATOR.$name, $contents);
             }
+
+            File::put($directory.DIRECTORY_SEPARATOR.'.sandbox-prepend.php', self::SANDBOX_PREPEND);
 
             return $this->execute($directory, $entry);
         } finally {
@@ -92,6 +103,7 @@ class PhpRunner
             'allow_url_fopen' => '0',
             'allow_url_include' => '0',
             'ffi.enable' => '0',
+            'auto_prepend_file' => $directory.DIRECTORY_SEPARATOR.'.sandbox-prepend.php',
             'disable_functions' => implode(',', DisabledFunctions::for($this->phpBinary())),
             'memory_limit' => '64M',
             'max_execution_time' => (string) $this->timeLimitSeconds,
