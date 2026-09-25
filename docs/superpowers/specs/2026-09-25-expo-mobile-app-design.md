@@ -80,7 +80,7 @@ Expo app ──POST /api/lessons/{id}/run {code}──▶ main API (app/)
     **503** `{ "message": "The PHP sandbox is unavailable. Try again shortly." }`.
   - A check whose report marker is missing returns `loaded: false` with the error
     "The checker could not read your code. Run it first to look for errors."
-- `FakePhpSandbox` is used in tests and bound in place of the real one.
+- Tests replace `PhpSandbox` with a Mockery mock (`$this->mock(PhpSandbox::class)`).
 - Configuration in `config/services.php`: `runner.url`, `runner.secret` (from `RUNNER_URL` and
   `RUNNER_SECRET`).
 
@@ -125,18 +125,21 @@ X-Signature: hex(hmac_sha256(timestamp + "." + rawBody, RUNNER_SECRET))
 1. Create `/tmp/run-<random>/` and write the files into it.
 2. Start the child with Symfony Process: `php -n <ini flags> <entry>`, with an **empty
    environment** and the temp folder as the working directory. The ini flags are:
-   - `-n`: no `php.ini`, so optional shared extensions (curl, pdo, sockets…) are not loaded
+   - `-n`: no `php.ini`. This does **not** remove extensions compiled into the binary (Homebrew's
+     PHP has curl, sockets, PDO and FFI built in), so the settings below are what matter.
    - `open_basedir=/tmp/run-<random>`
-   - `allow_url_fopen=0`, `allow_url_include=0`
+   - `allow_url_fopen=0`, `allow_url_include=0`, `ffi.enable=0`
    - `memory_limit=64M`, `max_execution_time=5`
-   - `display_errors=stdout`, `error_reporting=E_ALL`, `html_errors=0`
-   - `disable_functions=` `exec, shell_exec, system, passthru, proc_open, popen, proc_nice,
-     pcntl_*, posix_*, putenv, ini_set, ini_alter, set_time_limit, ignore_user_abort, dl, mail,
-     link, symlink, chmod, chown, chgrp, fsockopen, pfsockopen, stream_socket_client,
-     stream_socket_server, stream_socket_pair, socket_*, curl_*`
-     (the `*` entries are written out in full, because `disable_functions` has no wildcards)
-3. Stop the process after 5 s of real time, even if it is only waiting. If more than 64 KB of
-   output is produced, stop reading it and set `truncated`.
+   - `display_errors=stdout`, `log_errors=0`, `error_reporting=E_ALL`, `html_errors=0`
+   - `disable_functions=`: program execution (`exec`, `shell_exec`, `system`, `passthru`, `popen`,
+     `proc_*`), process and settings control (`pcntl_*`, `posix_*`, `putenv`, `ini_set`,
+     `set_time_limit`…), mail and logging, links and permissions, DNS, and sockets (`fsockopen`,
+     `stream_socket_*`, `socket_*`, `curl_*`, `ftp_*`…). `disable_functions` has no wildcards,
+     so prefixed families are expanded from the **child binary's own** function list
+     (`App\Runner\DisabledFunctions`).
+3. Stop the process after 6 s of real time. PHP's own 5 s `max_execution_time` stops busy loops
+   first, with a readable error; the real-time limit catches code that sleeps or blocks. If more
+   than 64 KB of output is produced, stop the process and set `truncated`.
 4. Delete the temp folder in a `finally` block.
 
 ### Before launch
@@ -144,6 +147,12 @@ X-Signature: hex(hmac_sha256(timestamp + "." + rawBody, RUNNER_SECRET))
 Read the runner's environment on Laravel Cloud and confirm that it contains only `RUNNER_SECRET`
 and Cloud's harmless defaults: no database, cache or storage credentials, and no `APP_KEY` value
 used elsewhere.
+
+### Known remaining risk
+
+`disable_functions` can't remove classes. If the binary includes `pdo_mysql`, `mysqli` or `soap`,
+learner code can still open network connections through those classes. The runner holds nothing
+to steal; the risk is that it could be used to reach other hosts. The runner README documents this.
 
 ## Part 3: The Expo app (`mobile/`)
 
@@ -245,15 +254,15 @@ mobile/
 
 ## Testing
 
-- **`runner/`** (Pest, feature tests that start a real `php` child):
+- **`runner/`** (PHPUnit, as in `app/`; feature tests that start a real `php` child):
   - `echo` output is returned; a fatal error gives exit code 255.
   - `while (true) {}` is stopped at 5 s and `timedOut` is set.
   - Each blocked capability fails: `exec`, `shell_exec`, `file_get_contents('/etc/passwd')`,
     `getenv()` returning an empty array, `fsockopen`, and `ini_set('open_basedir', '/')`.
   - Output over 64 KB is truncated, and temp folders are deleted after success, failure and timeout.
   - Missing, wrong and expired signatures get 401; invalid file names and entries get 422.
-- **`app/`** (Pest):
-  - PHP run and check endpoints are tested with `FakePhpSandbox`: validation, response shape, and
+- **`app/`** (PHPUnit):
+  - PHP run and check endpoints are tested with a mocked `PhpSandbox`: validation, response shape, and
     503 when the sandbox is unavailable.
   - `HttpPhpSandbox` is tested with `Http::fake`: the signature headers are correct, report
     parsing works, a missing marker is handled, and timeout and truncation suffixes are added.
