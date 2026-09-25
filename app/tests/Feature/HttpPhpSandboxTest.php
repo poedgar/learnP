@@ -181,6 +181,8 @@ class HttpPhpSandboxTest extends TestCase
             'server error' => [fn () => Http::response('Server Error', 500)],
             'html page with 200' => [fn () => Http::response('<html>Cloud is waking up</html>', 200)],
             'json missing fields' => [fn () => Http::response(['stdout' => 'x'], 200)],
+            'stdout not a string' => [fn () => Http::response(['stdout' => ['x'], 'exitCode' => 0, 'timedOut' => false, 'truncated' => false])],
+            'exitCode not an int' => [fn () => Http::response(['stdout' => '', 'exitCode' => '0', 'timedOut' => false, 'truncated' => false])],
             'connection refused' => [fn () => Http::failedConnection()],
         ];
     }
@@ -192,5 +194,16 @@ class HttpPhpSandboxTest extends TestCase
         $this->expectException(PhpSandboxUnavailable::class);
 
         $this->sandbox(url: null, secret: null)->run('echo 1;');
+    }
+
+    public function test_a_malformed_report_is_treated_as_missing(): void
+    {
+        $this->runnerReturns(self::MARKER.json_encode(['loaded' => true, 'output' => '', 'checks' => 'nope']));
+
+        $result = $this->sandbox()->check('<?php echo 1;', []);
+
+        $this->assertFalse($result['passed']);
+        $this->assertFalse($result['loaded']);
+        $this->assertSame('The checker could not read your code. Run it first to look for errors.', $result['error']);
     }
 }

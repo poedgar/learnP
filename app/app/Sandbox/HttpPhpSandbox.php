@@ -45,7 +45,7 @@ class HttpPhpSandbox implements PhpSandbox
         $position = strrpos($result['stdout'], self::REPORT_MARKER);
         $report = $position === false ? null : json_decode(substr($result['stdout'], $position + strlen(self::REPORT_MARKER)), true);
 
-        if (! is_array($report)) {
+        if (! $this->isValidReport($report)) {
             return [
                 'passed' => false,
                 'loaded' => false,
@@ -97,11 +97,28 @@ class HttpPhpSandbox implements PhpSandbox
 
         $result = $response->json();
 
-        if (! $response->successful() || ! is_array($result) || ! isset($result['stdout'], $result['exitCode'], $result['timedOut'], $result['truncated'])) {
+        if (! $response->successful() || ! is_array($result)
+            || ! is_string($result['stdout'] ?? null)
+            || ! is_int($result['exitCode'] ?? null)
+            || ! is_bool($result['timedOut'] ?? null)
+            || ! is_bool($result['truncated'] ?? null)
+        ) {
             throw new PhpSandboxUnavailable("The runner responded with {$response->status()}: ".Str::limit($response->body(), 200));
         }
 
         return $result;
+    }
+
+    /** Guards against a harness report (or a lookalike printed by learner code) that doesn't match the expected shape. */
+    private function isValidReport(mixed $report): bool
+    {
+        return is_array($report)
+            && is_bool($report['loaded'] ?? null)
+            && is_string($report['output'] ?? null)
+            && is_array($report['checks'] ?? null)
+            && collect($report['checks'])->every(fn (mixed $check) => is_array($check)
+                && is_string($check['label'] ?? null)
+                && is_bool($check['passed'] ?? null));
     }
 
     private function describeStop(string $output, array $result): string
