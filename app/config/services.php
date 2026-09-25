@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'runner' => [
+        'url' => env('RUNNER_URL'),
+        'secret' => env('RUNNER_SECRET'),
+    ],
+
 ];
