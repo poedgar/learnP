@@ -167,17 +167,18 @@ to steal; the risk is that it could be used to reach other hosts. The runner REA
 
 ### Stack
 
-The current Expo SDK, TypeScript, Expo Router, TanStack Query (API data), Zustand with
-AsyncStorage (progress), `react-native-webview` (editor), `react-native-keyboard-controller`
-(key bar), `react-native-markdown-display` (theory), and Prism (highlighting code blocks as
-native text). It follows the system's light or dark mode. The API base URL comes from
-`EXPO_PUBLIC_API_URL`.
+Expo SDK 57, TypeScript, Expo Router, TanStack Query (API data), Zustand with AsyncStorage
+(progress), an Expo DOM component for the editor, `marked` (tokenising the theory, which is then
+drawn as native views), and Prism (highlighting code blocks as native text). It follows the
+system's light or dark mode. The API base URL comes from `EXPO_PUBLIC_API_URL`. It must run in
+**Expo Go**, so it uses no native modules outside Expo Go. That rules out
+`react-native-keyboard-controller`; the key bar uses React Native's `Keyboard` events instead.
 
 ### Screens
 
 | Route | Screen |
 |---|---|
-| `/` | Course list, with a progress bar per course |
+| `/` | Course list with each course's lesson count. Progress shows on the course screen, because `GET /courses` doesn't list lesson ids. |
 | `/courses/[course]` | Lessons in order, each with a Read / Quiz / Challenges summary |
 | `/courses/[course]/lessons/[lesson]?step=` | Lesson with a segmented control: Learn · Sandbox · Quiz · Challenges |
 
@@ -191,7 +192,7 @@ native text). It follows the system's light or dark mode. The API base URL comes
 ### Lesson steps
 
 - **Learn:** Markdown theory. Each code block is highlighted and has a "Try it in the sandbox"
-  button that opens the Sandbox with that code. "Done reading" marks the lesson as read and opens
+  button that opens the Sandbox with that code. "Mark as read and open the sandbox" marks the lesson as read and opens
   the Sandbox.
 - **Sandbox:** the editor, a Run button and a results panel.
   - SQL shows one table per statement, scrollable sideways, with a collapsible schema panel.
@@ -210,15 +211,15 @@ Read `resources/js/components/lesson/*.vue` when building each step.
 
 ### Editor
 
-- `editor-web/` contains the CodeMirror 6 source, with the SQL and PHP languages and light and
-  dark themes. An esbuild script bundles it into one self-contained HTML string in
-  `src/editor/editorHtml.ts`, so the editor loads nothing from the internet.
-- `CodeEditor.tsx` hosts it in a WebView. The two sides exchange JSON messages:
-  - From React Native to the editor: `setValue`, `insert { text, cursorOffset }`, `setLanguage`,
-    `setTheme`, `setReadOnly`, `focus`.
-  - From the editor to React Native: `ready`, `change { value }`, `focus`, `blur`.
-  - Values are sent back to the editor only when they differ from what it last reported, so
-    changes don't bounce back and forth.
+- `src/editor/CodeMirrorView.tsx` is an Expo DOM component (`'use dom'`) running CodeMirror 6,
+  with the SQL and PHP languages and light and dark themes. Metro bundles it, so the editor loads
+  nothing from the internet.
+- Text flows only **out** of the editor, through an `onChange` callback. The native side replaces
+  the text only by changing `resetKey`, for example on "Restore example", a Try request or
+  switching challenges. So a stale value coming back across the bridge can never overwrite fast
+  typing.
+- The imperative handle offers `insert(text, cursorOffset)` and `focus()`. `onFocusChange`
+  tells the key bar which editor is active.
 - `KeyBar.tsx` sits above the keyboard while the editor has focus.
   - PHP keys: Tab, `$`, `->`, `;`, `{}`, `()`, `[]`, `'`, `=>`.
   - SQL keys: Tab, `*`, `;`, `()`, `'`, `,`, `=`.
@@ -244,8 +245,8 @@ mobile/
   src/api/                   client + types
   src/progress/              store + summary logic
   src/components/            ResultTable, PhpOutput, Markdown, CodeBlock, StepSwitcher, LoadState…
-  src/editor/                CodeEditor.tsx, KeyBar.tsx, editorHtml.ts (generated)
-  editor-web/                CodeMirror source + build script
+  src/editor/                CodeMirrorView.tsx ('use dom'), CodeEditor.tsx, KeyBar.tsx
+  src/screens/               HomeScreen, CourseScreen, LessonScreen (routes in app/ wrap them)
 ```
 
 ## Errors: from runner to screen
