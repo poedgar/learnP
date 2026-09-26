@@ -41,7 +41,7 @@ function LessonRow({ lesson, courseSlug }: { lesson: Lesson; courseSlug: string 
   const progress = summary.complete
     ? 'Completed.'
     : summary.started
-      ? `${summary.read ? 'Read' : 'Not read yet'} · quiz ${summary.quizCorrect}/${summary.quizTotal} · challenges ${summary.challengesPassed}/${summary.challengeTotal}`
+      ? `Quiz ${summary.quizCorrect}/${summary.quizTotal} correct, challenges ${summary.challengesPassed}/${summary.challengeTotal} solved.`
       : null;
 
   return (

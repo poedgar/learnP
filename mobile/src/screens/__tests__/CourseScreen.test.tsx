@@ -25,7 +25,7 @@ test('shows progress for started and completed lessons', async () => {
   await screen.findByText('Your first queries');
 
   await act(async () => updateLesson(1, () => ({ read: true })));
-  expect(screen.getByText('Read · quiz 0/2 · challenges 0/2')).toBeTruthy();
+  expect(screen.getByText('Quiz 0/2 correct, challenges 0/2 solved.')).toBeTruthy();
 
   await act(async () =>
     updateLesson(1, () => ({
