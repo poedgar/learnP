@@ -1,3 +1,6 @@
+import { cleanup } from '@testing-library/react-native';
+import { useProgressStore } from './src/progress/store';
+
 // An in-memory AsyncStorage, so tests don't depend on the package's own mock layout.
 jest.mock('@react-native-async-storage/async-storage', () => {
   const store = new Map<string, string>();
@@ -24,8 +27,7 @@ jest.mock('expo-router', () => ({
 
 process.env.EXPO_PUBLIC_API_URL = 'http://api.test';
 
-import { useProgressStore } from './src/progress/store';
-
 afterEach(() => {
+  cleanup();
   useProgressStore.setState({ lessons: {} });
 });
