@@ -85,6 +85,18 @@ class PhpSandboxApiTest extends TestCase
             ->assertExactJson(['message' => 'The PHP sandbox is unavailable. Try again shortly.']);
     }
 
+    public function test_an_unavailable_sandbox_returns_503_with_a_readable_message_for_check(): void
+    {
+        $challenge = Challenge::where('title', 'Your first class')->firstOrFail();
+
+        $this->mock(PhpSandbox::class)
+            ->shouldReceive('check')->andThrow(new PhpSandboxUnavailable('Could not reach the runner.'));
+
+        $this->postJson("/api/challenges/{$challenge->id}/check", ['code' => '<?php class Book {}'])
+            ->assertStatus(503)
+            ->assertExactJson(['message' => 'The PHP sandbox is unavailable. Try again shortly.']);
+    }
+
     public function test_php_code_is_passed_on_untrimmed(): void
     {
         $this->mock(PhpSandbox::class)

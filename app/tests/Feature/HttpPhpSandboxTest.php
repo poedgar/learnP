@@ -55,6 +55,15 @@ class HttpPhpSandboxTest extends TestCase
         });
     }
 
+    public function test_invalid_utf8_in_the_code_does_not_break_the_outbound_request(): void
+    {
+        $this->runnerReturns('');
+
+        $this->sandbox()->run("echo \"\xff\";");
+
+        Http::assertSent(fn (Request $request) => $request->url() === 'https://runner.test/run');
+    }
+
     public function test_code_with_an_opening_tag_is_sent_unchanged(): void
     {
         $this->runnerReturns('');

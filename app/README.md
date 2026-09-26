@@ -90,3 +90,13 @@ After changing content, run `php artisan db:seed`.
 ```sh
 php artisan test
 ```
+
+To also run the end-to-end test against a real runner, start the runner (see
+`../runner/README.md`), then:
+
+```sh
+RUNNER_E2E_URL=http://127.0.0.1:8001 RUNNER_E2E_SECRET=<secret> php artisan test --filter=RunnerEndToEndTest
+```
+
+`<secret>` must match the `RUNNER_SECRET` the runner was started with. Without these two
+environment variables, `RunnerEndToEndTest` is skipped.

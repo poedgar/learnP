@@ -79,7 +79,10 @@ class HttpPhpSandbox implements PhpSandbox
             throw new PhpSandboxUnavailable('RUNNER_URL and RUNNER_SECRET must be set.');
         }
 
-        $body = json_encode(['files' => $files, 'entry' => $entry], JSON_THROW_ON_ERROR);
+        // Learner code can contain arbitrary bytes (e.g. `echo "\xFF";` in a string literal),
+        // which isn't valid UTF-8 and would otherwise make json_encode() throw and turn a run
+        // into a 500. Substituting the invalid bytes keeps the request going.
+        $body = json_encode(['files' => $files, 'entry' => $entry], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
         $timestamp = (string) now()->getTimestamp();
 
         try {
