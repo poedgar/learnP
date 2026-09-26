@@ -40,6 +40,8 @@ class PhpRunner
      */
     public function run(array $files, string $entry): array
     {
+        $this->assertNotRunningAsRoot();
+
         $unresolvedDirectory = $this->workRoot.DIRECTORY_SEPARATOR.'run-'.Str::random(16);
         File::ensureDirectoryExists($unresolvedDirectory, 0700);
 
@@ -49,14 +51,41 @@ class PhpRunner
             $directory = realpath($unresolvedDirectory) ?: throw new RuntimeException('Could not create the run folder.');
 
             foreach ($files as $name => $contents) {
-                File::put($directory.DIRECTORY_SEPARATOR.$name, $contents);
+                $path = $directory.DIRECTORY_SEPARATOR.$name;
+                File::put($path, $contents);
+                File::chmod($path, 0400);
             }
 
-            File::put($directory.DIRECTORY_SEPARATOR.'.sandbox-prepend.php', self::SANDBOX_PREPEND);
+            $prependPath = $directory.DIRECTORY_SEPARATOR.'.sandbox-prepend.php';
+            File::put($prependPath, self::SANDBOX_PREPEND);
+            File::chmod($prependPath, 0400);
+
+            // Read-only files in a read+execute-only (no write) folder: learner code (same OS
+            // user, so ordinary permission bits apply) can create nothing, so it has nowhere to
+            // put a native library for Pdo\Sqlite::loadExtension() to load. `chmod` itself is in
+            // DisabledFunctions, so learner code can't undo this either.
+            File::chmod($directory, 0500);
 
             return $this->execute($directory, $entry);
         } finally {
+            // A 0500 folder's entries can't be removed (deleting a file needs write permission on
+            // the folder that contains it, not on the file), so restore write access before
+            // File::deleteDirectory() walks it. Safe to call even if the run never got this far.
+            File::chmod($unresolvedDirectory, 0700);
             File::deleteDirectory($unresolvedDirectory);
+        }
+    }
+
+    /**
+     * Every restriction here (open_basedir, the read-only run folder, disable_functions) relies
+     * on ordinary POSIX permission bits applying to the child process. Root ignores all of them.
+     */
+    private function assertNotRunningAsRoot(): void
+    {
+        // posix_geteuid() may be missing (e.g. under some FPM/SAPI builds); when it is, we can't
+        // check, so we don't block — but on any SAPI that has it, refuse outright.
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            throw new RuntimeException('The runner must not run as root: file permissions would not confine learner code.');
         }
     }
 

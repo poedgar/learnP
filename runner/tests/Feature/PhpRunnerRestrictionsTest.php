@@ -172,13 +172,44 @@ class PhpRunnerRestrictionsTest extends TestCase
         $this->assertStringContainsString('Allowed memory size', $output);
     }
 
-    public function test_tmpfile_writes_land_in_the_run_folder_not_the_system_temp_dir(): void
+    // The run folder is made read-only before learner code runs (see the write-refusal tests
+    // below), and sys_temp_dir still points at it, so tmpfile() now fails instead of leaking a
+    // file into the system temp dir.
+    public function test_tmpfile_fails_in_the_read_only_run_folder(): void
     {
         $result = (new PhpRunner($this->workRoot, 1))->run([
-            'main.php' => '<?php $f = tmpfile(); fwrite($f, str_repeat("x", 1024)); echo stream_get_meta_data($f)["uri"]; sleep(30);',
+            'main.php' => '<?php var_dump(tmpfile());',
         ], 'main.php');
 
-        $this->assertStringStartsWith(realpath($this->workRoot).DIRECTORY_SEPARATOR.'run-', $result['stdout']);
+        $this->assertStringContainsString('bool(false)', $result['stdout']);
+        $this->assertSame([], File::directories($this->workRoot));
+    }
+
+    public function test_writing_a_new_file_in_the_run_folder_is_refused(): void
+    {
+        $result = (new PhpRunner($this->workRoot, 1))->run([
+            'main.php' => '<?php var_dump(file_put_contents(__DIR__."/lib.so", "x"));',
+        ], 'main.php');
+
+        $this->assertStringContainsString('bool(false)', $result['stdout']);
+        $this->assertSame([], File::directories($this->workRoot));
+    }
+
+    public function test_creating_a_pdo_sqlite_database_file_in_the_run_folder_is_refused(): void
+    {
+        $result = (new PhpRunner($this->workRoot, 1))->run([
+            'main.php' => '<?php
+                try {
+                    $db = new PDO("sqlite:".__DIR__."/x.db");
+                    $db->exec("CREATE TABLE t (id INTEGER)");
+                    echo "created";
+                } catch (\Throwable $e) {
+                    echo get_class($e).": ".$e->getMessage();
+                }
+            ',
+        ], 'main.php');
+
+        $this->assertStringNotContainsString('created', $result['stdout']);
         $this->assertSame([], File::directories($this->workRoot));
     }
 
