@@ -171,4 +171,43 @@ class PhpRunnerRestrictionsTest extends TestCase
 
         $this->assertStringContainsString('Allowed memory size', $output);
     }
+
+    public function test_tmpfile_writes_land_in_the_run_folder_not_the_system_temp_dir(): void
+    {
+        $result = (new PhpRunner($this->workRoot, 1))->run([
+            'main.php' => '<?php $f = tmpfile(); fwrite($f, str_repeat("x", 1024)); echo stream_get_meta_data($f)["uri"]; sleep(30);',
+        ], 'main.php');
+
+        $this->assertStringStartsWith(realpath($this->workRoot).DIRECTORY_SEPARATOR.'run-', $result['stdout']);
+        $this->assertSame([], File::directories($this->workRoot));
+    }
+
+    // SQLite3::loadExtension() is gated by the `sqlite3.extension_dir` ini setting: PHP
+    // refuses to enable extension loading at all when it's empty, before ever touching the
+    // filesystem. Asserting the specific "disabled" message (not just any failure) proves
+    // it's this gate that fired, not merely a missing file.
+    public function test_sqlite3_extension_loading_is_blocked(): void
+    {
+        if (! class_exists('SQLite3')) {
+            $this->markTestSkipped('SQLite3 is not available on this PHP build.');
+        }
+
+        $output = $this->runCode('<?php
+            $db = new SQLite3(":memory:");
+            var_dump($db->loadExtension("evil.so"));
+        ');
+
+        $this->assertStringContainsString('SQLite Extensions are disabled', $output);
+        $this->assertStringContainsString('bool(false)', $output);
+    }
+
+    // Pdo\Sqlite::loadExtension() (PHP 8.4+) and PDO's own sqlite driver have no equivalent
+    // gate: ext/pdo_sqlite registers no ini settings at all (confirmed via
+    // ReflectionExtension('pdo_sqlite')->getINIEntries()), and setAuthorizer(), disable_functions
+    // and open_basedir were all confirmed by hand (outside the repo, with a real compiled native
+    // library) to have no effect on it either, because it calls libsqlite3's sqlite3_load_extension()
+    // (a dlopen) directly, bypassing every PHP-level control. No test is added for it here because
+    // any test built around a missing/invalid file would pass whether or not a real gate exists,
+    // which is worse than no test. See runner/README.md "Known limits" and the fix report for the
+    // full probe and the residual risk.
 }

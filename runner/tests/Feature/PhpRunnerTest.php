@@ -63,7 +63,12 @@ class PhpRunnerTest extends TestCase
 
     public function test_cpu_bound_code_is_stopped_by_php_with_a_readable_error(): void
     {
-        $result = $this->runCode('<?php while (true) {}');
+        // PHP's own max_execution_time (CPU time, 1s) races the wall-clock kill (timeLimitSeconds +
+        // wallClockMarginSeconds) on a busy machine; a generous margin here keeps the wall clock out
+        // of the way so this test proves PHP's own error, not the runner's fallback kill.
+        $runner = new PhpRunner($this->workRoot, timeLimitSeconds: 1, wallClockMarginSeconds: 4);
+
+        $result = $this->runCode('<?php while (true) {}', $runner);
 
         $this->assertFalse($result['timedOut']);
         $this->assertSame(255, $result['exitCode']);
@@ -92,6 +97,19 @@ class PhpRunnerTest extends TestCase
     {
         $started = microtime(true);
         $result = $this->runCode('<?php while (true) { echo "x"; }', $this->runner(timeLimitSeconds: 5, maxOutputBytes: 1000));
+
+        $this->assertTrue($result['truncated']);
+        $this->assertFalse($result['timedOut']);
+        $this->assertLessThan(3, microtime(true) - $started);
+    }
+
+    public function test_stderr_beyond_the_output_cap_stops_the_process_quickly(): void
+    {
+        $started = microtime(true);
+        $result = $this->runCode(
+            '<?php fwrite(STDERR, str_repeat("x", 5000)); sleep(30);',
+            $this->runner(timeLimitSeconds: 5, maxOutputBytes: 1000),
+        );
 
         $this->assertTrue($result['truncated']);
         $this->assertFalse($result['timedOut']);

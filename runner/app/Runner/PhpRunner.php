@@ -4,6 +4,7 @@ namespace App\Runner;
 
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
@@ -27,6 +28,10 @@ class PhpRunner
         private readonly string $workRoot,
         private readonly int $timeLimitSeconds = 5,
         private readonly int $maxOutputBytes = 65_536,
+        // How much longer than $timeLimitSeconds the wall-clock kill waits, on top of PHP's own
+        // max_execution_time. Under load, PHP's CPU-time check and Symfony's wall-clock timeout
+        // race each other; a bigger margin here (tests raise it) avoids flaking on a busy machine.
+        private readonly int $wallClockMarginSeconds = 1,
     ) {}
 
     /**
@@ -35,11 +40,13 @@ class PhpRunner
      */
     public function run(array $files, string $entry): array
     {
-        $directory = $this->workRoot.DIRECTORY_SEPARATOR.'run-'.Str::random(16);
-        File::ensureDirectoryExists($directory, 0700);
+        $unresolvedDirectory = $this->workRoot.DIRECTORY_SEPARATOR.'run-'.Str::random(16);
+        File::ensureDirectoryExists($unresolvedDirectory, 0700);
 
         try {
-            $directory = realpath($directory);
+            // realpath() failing must not silently leave $directory as `false`: an empty
+            // open_basedir setting below would mean no restriction at all.
+            $directory = realpath($unresolvedDirectory) ?: throw new RuntimeException('Could not create the run folder.');
 
             foreach ($files as $name => $contents) {
                 File::put($directory.DIRECTORY_SEPARATOR.$name, $contents);
@@ -49,7 +56,7 @@ class PhpRunner
 
             return $this->execute($directory, $entry);
         } finally {
-            File::deleteDirectory($directory);
+            File::deleteDirectory($unresolvedDirectory);
         }
     }
 
@@ -62,20 +69,26 @@ class PhpRunner
         $environment = array_fill_keys(array_keys(getenv() + $_ENV + $_SERVER), false);
         $process = new Process([$this->phpBinary(), '-n', ...$this->iniFlags($directory), $entry], $directory, $environment);
         // PHP's max_execution_time stops busy loops with a proper error; this catches code that sleeps or blocks.
-        $process->setTimeout($this->timeLimitSeconds + 1);
+        $process->setTimeout($this->timeLimitSeconds + $this->wallClockMarginSeconds);
 
         $stdout = '';
+        $stderrBytes = 0;
         $timedOut = false;
         $truncated = false;
 
         try {
             $process->start();
-            $truncated = $process->waitUntil(function (string $type, string $buffer) use (&$stdout) {
+            // stderr isn't returned to the caller, but it still counts toward the output budget:
+            // otherwise a learner could write past the cap on stderr instead of stdout and run
+            // unbounded until the (much longer) wall-clock timeout kills it.
+            $truncated = $process->waitUntil(function (string $type, string $buffer) use (&$stdout, &$stderrBytes) {
                 if ($type === Process::OUT) {
                     $stdout .= $buffer;
+                } else {
+                    $stderrBytes += strlen($buffer);
                 }
 
-                return strlen($stdout) > $this->maxOutputBytes;
+                return strlen($stdout) + $stderrBytes > $this->maxOutputBytes;
             });
         } catch (ProcessTimedOutException) {
             $timedOut = true;
@@ -100,9 +113,19 @@ class PhpRunner
     {
         $settings = [
             'open_basedir' => $directory,
+            // tmpfile()/tempnam() ignore open_basedir and default to the system temp dir; pointing
+            // them at the run folder means a killed run's leftover file is deleted with it instead
+            // of accumulating on disk forever.
+            'sys_temp_dir' => $directory,
             'allow_url_fopen' => '0',
             'allow_url_include' => '0',
             'ffi.enable' => '0',
+            // Deliberately NOT setting sqlite3.extension_dir here: leaving it truly unset is what
+            // makes SQLite3::loadExtension() refuse outright ("SQLite Extensions are disabled").
+            // Explicitly setting it to '' looks equivalent (ini_get() returns "" either way) but
+            // isn't: ext/sqlite3 treats "configured, even empty" as enabling extension loading with
+            // an empty path prefix, which lets an absolute path load and run. Confirmed by hand.
+            // Pdo\Sqlite::loadExtension() has no ini gate at all; see runner/README.md "Known limits".
             'auto_prepend_file' => $directory.DIRECTORY_SEPARATOR.'.sandbox-prepend.php',
             'disable_functions' => implode(',', DisabledFunctions::for($this->phpBinary())),
             'memory_limit' => '64M',
