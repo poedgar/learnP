@@ -122,13 +122,19 @@ X-Signature: hex(hmac_sha256(timestamp + "." + rawBody, RUNNER_SECRET))
 
 ### Running code
 
-1. Create `/tmp/run-<random>/` and write the files into it.
+0. Refuse to run if the runner process is root, because file permissions (step 1) don't restrict root.
+1. Create `/tmp/run-<random>/` and write the files into it, together with a trusted
+   `.sandbox-prepend.php` that unregisters the `php://` stream wrapper. Without that, `php://fd/N`
+   reaches file descriptors inherited from the runner process. Then make the folder read-only
+   (folder 0500, files 0400), so learner code can't create files. This also means there is no way
+   to supply a native library to `Pdo\Sqlite::loadExtension()`, which no PHP setting can block.
 2. Start the child with Symfony Process: `php -n <ini flags> <entry>`, with an **empty
    environment** and the temp folder as the working directory. The ini flags are:
    - `-n`: no `php.ini`. This does **not** remove extensions compiled into the binary (Homebrew's
      PHP has curl, sockets, PDO and FFI built in), so the settings below are what matter.
    - `open_basedir=/tmp/run-<random>`
    - `allow_url_fopen=0`, `allow_url_include=0`, `ffi.enable=0`
+   - `auto_prepend_file=<run folder>/.sandbox-prepend.php`, `sys_temp_dir=<run folder>`
    - `memory_limit=64M`, `max_execution_time=5`
    - `display_errors=stdout`, `log_errors=0`, `error_reporting=E_ALL`, `html_errors=0`
    - `disable_functions=`: program execution (`exec`, `shell_exec`, `system`, `passthru`, `popen`,
@@ -139,8 +145,11 @@ X-Signature: hex(hmac_sha256(timestamp + "." + rawBody, RUNNER_SECRET))
      (`App\Runner\DisabledFunctions`).
 3. Stop the process after 6 s of real time. PHP's own 5 s `max_execution_time` stops busy loops
    first, with a readable error; the real-time limit catches code that sleeps or blocks. If more
-   than 64 KB of output is produced, stop the process and set `truncated`.
-4. Delete the temp folder in a `finally` block.
+   than 64 KB of output is produced (stdout and stderr together), stop the process and set `truncated`.
+4. Make the folder writable again and delete it in a `finally` block.
+
+Consequences for learners: code can't create files, and can't use `php://` streams (`php://memory`,
+`php://temp`, `php://output`, `php://stdin`) or `SplTempFileObject`. No current lesson needs them.
 
 ### Before launch
 
