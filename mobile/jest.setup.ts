@@ -23,3 +23,9 @@ jest.mock('expo-router', () => ({
 }));
 
 process.env.EXPO_PUBLIC_API_URL = 'http://api.test';
+
+import { useProgressStore } from './src/progress/store';
+
+afterEach(() => {
+  useProgressStore.setState({ lessons: {} });
+});
