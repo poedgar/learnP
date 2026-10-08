@@ -23,7 +23,7 @@ class CourseApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'sql')
             ->assertJsonPath('data.0.language', 'sql')
-            ->assertJsonPath('data.0.lessons_count', 9)
+            ->assertJsonPath('data.0.lessons_count', 10)
             ->assertJsonPath('data.1.slug', 'php-oop')
             ->assertJsonPath('data.1.language', 'php');
     }
@@ -89,6 +89,9 @@ class CourseApiTest extends TestCase
             ->assertJsonPath('navigation.previous.slug', 'designing-tables');
         $this->getJson('/api/courses/sql/lessons/naming-steps-with-with')
             ->assertJsonPath('navigation.previous.slug', 'shaping-values');
+        $this->getJson('/api/courses/sql/lessons/window-functions')
+            ->assertJsonPath('navigation.previous.slug', 'naming-steps-with-with')
+            ->assertJsonPath('navigation.next', null);
     }
 
     public function test_unknown_course_returns_not_found(): void
