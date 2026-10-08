@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { api, ApiError } from '../../../api/client';
+import type { SqlCheck } from '../../../api/types';
 import { useProgressStore } from '../../../progress/store';
 import { phpLesson, sqlLesson } from '../../../test/fixtures';
 import { ChallengesStep } from '../ChallengesStep';
@@ -35,6 +36,26 @@ test('a passing SQL answer is saved and offers the next challenge', async () => 
 
   await fireEvent.press(screen.getByRole('button', { name: 'Next challenge' }));
   expect(screen.getByText('Books under 10.')).toBeTruthy();
+});
+
+test('switching challenges while a check is on its way keeps the checked solution', async () => {
+  let resolve!: (check: SqlCheck) => void;
+  jest.spyOn(api, 'checkSql').mockReturnValue(new Promise((r) => (resolve = r)));
+  await render(<ChallengesStep lesson={sqlLesson.data} language="sql" />);
+
+  await fireEvent.changeText(screen.getByLabelText('Code for challenge: Titles and authors'), 'SELECT title, author FROM books');
+  // fireEvent resolves with the handler's promise, so this press settles only once the check returns.
+  const check = fireEvent.press(screen.getByRole('button', { name: 'Check answer' }));
+  await screen.findByRole('button', { name: 'Checking…' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Challenge 2: Cheap books' }));
+  await act(async () => {
+    resolve(passingSql);
+    await check;
+  });
+
+  expect(useProgressStore.getState().lessons[1].challenges[21]).toEqual({ passed: true, code: 'SELECT title, author FROM books' });
+  expect(useProgressStore.getState().lessons[1].challenges[22]).toBeUndefined();
+  expect(screen.queryByText(passingSql.message)).toBeNull();
 });
 
 test('a failing PHP answer lists the checks', async () => {

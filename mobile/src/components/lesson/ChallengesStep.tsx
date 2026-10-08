@@ -44,6 +44,7 @@ export function ChallengesStep({ lesson, language }: Props) {
   const [showHint, setShowHint] = useState(false);
   const scroll = useRef<ScrollView>(null);
   const editorY = useRef(0);
+  const shownId = useRef<number | null>(null);
 
   if (challenges.length === 0) {
     return (
@@ -54,16 +55,17 @@ export function ChallengesStep({ lesson, language }: Props) {
   }
 
   const active = challenges[index];
+  shownId.current = active.id;
   const solved = challenges.filter((c) => progress.challenges[c.id]?.passed).length;
   const order = [...challenges.slice(index + 1), ...challenges.slice(0, index)];
   const nextUnsolved = order.find((c) => !progress.challenges[c.id]?.passed) ?? null;
 
-  function save(value: string, passed?: boolean) {
+  function save(value: string) {
     code.current = value;
     updateLesson(lesson.id, (current) => ({
       challenges: {
         ...current.challenges,
-        [active.id]: { passed: passed ?? current.challenges[active.id]?.passed ?? false, code: value },
+        [active.id]: { passed: current.challenges[active.id]?.passed ?? false, code: value },
       },
     }));
   }
@@ -82,31 +84,45 @@ export function ChallengesStep({ lesson, language }: Props) {
     setShowHint(false);
   }
 
+  /** Marks a challenge solved. Its code is already saved on every edit, so only fill it in if it never was. */
+  function markSolved(challenge: Challenge, submitted: string) {
+    updateLesson(lesson.id, (current) => ({
+      challenges: {
+        ...current.challenges,
+        [challenge.id]: { passed: true, code: current.challenges[challenge.id]?.code ?? submitted },
+      },
+    }));
+  }
+
   async function work(kind: 'run' | 'check') {
     if (working.current) return;
     working.current = true;
+    // The learner can switch challenges while this is on its way, so pin what was sent.
+    const challenge = active;
+    const submitted = code.current;
+    const stillShown = () => shownId.current === challenge.id;
     setBusy(kind);
     setFailure('');
     setRun(null);
     setCheck(null);
     try {
       if (kind === 'run') {
-        setRun(
+        const view: RunView =
           language === 'sql'
-            ? { kind: 'sql', run: await api.runSql(lesson.id, code.current) }
-            : { kind: 'php', run: await api.runPhp(lesson.id, code.current) },
-        );
+            ? { kind: 'sql', run: await api.runSql(lesson.id, submitted) }
+            : { kind: 'php', run: await api.runPhp(lesson.id, submitted) };
+        if (stillShown()) setRun(view);
       } else if (language === 'sql') {
-        const result = await api.checkSql(active.id, code.current);
-        setCheck({ kind: 'sql', check: result, message: result.message });
-        if (result.passed) save(code.current, true);
+        const result = await api.checkSql(challenge.id, submitted);
+        if (result.passed) markSolved(challenge, submitted);
+        if (stillShown()) setCheck({ kind: 'sql', check: result, message: result.message });
       } else {
-        const result = await api.checkPhp(active.id, code.current);
-        setCheck({ kind: 'php', check: result, message: phpCheckMessage(result) });
-        if (result.passed) save(code.current, true);
+        const result = await api.checkPhp(challenge.id, submitted);
+        if (result.passed) markSolved(challenge, submitted);
+        if (stillShown()) setCheck({ kind: 'php', check: result, message: phpCheckMessage(result) });
       }
     } catch (e) {
-      setFailure(e instanceof Error ? e.message : 'Something went wrong. Try again.');
+      if (stillShown()) setFailure(e instanceof Error ? e.message : 'Something went wrong. Try again.');
     } finally {
       working.current = false;
       setBusy(null);
