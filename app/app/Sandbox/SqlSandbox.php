@@ -63,14 +63,19 @@ class SqlSandbox
 
     /**
      * Runs the learner's SQL and the reference solution, then compares the last
-     * result set each of them produced.
+     * result set each of them produced. With a check query, the check runs after
+     * each of them and its results are compared instead, so a challenge can test
+     * what the SQL changed.
      *
      * @return array{passed: bool, message: string, run: array, expected: ?array}
      */
-    public function check(string $dataset, string $sql, string $solutionSql, bool $orderMatters): array
+    public function check(string $dataset, string $sql, string $solutionSql, bool $orderMatters, ?string $checkSql = null): array
     {
-        $run = $this->run($dataset, $sql);
-        $expected = $this->lastRowSet($this->run($dataset, $solutionSql)['results']);
+        // The newline ends a trailing "--" comment in the learner's SQL before the check starts.
+        $withCheck = fn (string $script) => $checkSql === null ? $script : $script."\n;\n".$checkSql;
+
+        $run = $this->run($dataset, $withCheck($sql));
+        $expected = $this->lastRowSet($this->run($dataset, $withCheck($solutionSql))['results']);
 
         if ($expected === null) {
             throw new RuntimeException('Challenge solution does not return rows.');
@@ -79,7 +84,13 @@ class SqlSandbox
         $fail = fn (string $message) => ['passed' => false, 'message' => $message, 'run' => $run, 'expected' => $expected];
 
         if ($run['error'] !== null) {
-            return $fail('Your SQL has an error. Fix it and check again.');
+            $failedInCheck = $checkSql !== null
+                && $run['error']['statement'] !== null
+                && $run['error']['statement'] >= count(StatementSplitter::split($sql));
+
+            return $fail($failedInCheck
+                ? 'Your SQL ran, but checking what it changed failed: '.$run['error']['message'].'. Make sure you made every change the challenge asks for.'
+                : 'Your SQL has an error. Fix it and check again.');
         }
 
         $actual = $this->lastRowSet($run['results']);

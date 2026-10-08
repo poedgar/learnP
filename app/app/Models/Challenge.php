@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Challenge extends Model
 {
-    protected $fillable = ['title', 'prompt', 'starter_code', 'solution', 'checks', 'hint', 'order_matters', 'position'];
+    protected $fillable = ['title', 'prompt', 'starter_code', 'solution', 'check_sql', 'checks', 'hint', 'order_matters', 'position'];
 
-    protected $hidden = ['solution'];
+    protected $hidden = ['solution', 'check_sql'];
 
     protected function casts(): array
     {

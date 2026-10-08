@@ -29,6 +29,7 @@ class ChallengeCheckController extends Controller
             app(RunSqlRequest::class)->validated('sql'),
             $challenge->solution,
             $challenge->order_matters,
+            $challenge->check_sql,
         ));
     }
 }

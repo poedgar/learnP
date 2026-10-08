@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Challenge;
+use App\Models\Lesson;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -85,5 +86,33 @@ class ChallengeCheckApiTest extends TestCase
             ->assertJsonPath('passed', false);
         $this->check('Orders per customer', 'SELECT c.name, COUNT(o.id) FROM customers AS c LEFT JOIN orders AS o ON o.customer_id = c.id GROUP BY c.id, c.name')
             ->assertJsonPath('passed', true);
+    }
+
+    public function test_a_challenge_with_a_check_query_is_checked_by_it(): void
+    {
+        $challenge = Lesson::where('slug', 'combining-tables')->firstOrFail()->challenges()->create([
+            'title' => 'Ship order 17', 'prompt' => 'Mark order 17 as shipped on 2026-04-08.',
+            'solution' => "UPDATE orders SET shipped_on = '2026-04-08' WHERE id = 17;",
+            'check_sql' => 'SELECT id, shipped_on FROM orders ORDER BY id',
+            'hint' => '', 'order_matters' => false, 'position' => 99,
+        ]);
+
+        $this->postJson("/api/challenges/{$challenge->id}/check", ['sql' => "UPDATE orders SET shipped_on = '2026-04-08' WHERE id = 17"])
+            ->assertOk()
+            ->assertJsonPath('passed', true);
+        $this->postJson("/api/challenges/{$challenge->id}/check", ['sql' => "SELECT 17, '2026-04-08'"])
+            ->assertJsonPath('passed', false);
+    }
+
+    public function test_the_check_query_is_never_sent_to_the_app(): void
+    {
+        Lesson::where('slug', 'combining-tables')->firstOrFail()->challenges()->create([
+            'title' => 'Ship order 17', 'prompt' => '', 'solution' => 'SELECT 1;',
+            'check_sql' => 'SELECT 1', 'hint' => '', 'order_matters' => false, 'position' => 99,
+        ]);
+
+        foreach ($this->getJson('/api/courses/sql/lessons/combining-tables')->json('data.challenges') as $challenge) {
+            $this->assertArrayNotHasKey('check_sql', $challenge);
+        }
     }
 }
