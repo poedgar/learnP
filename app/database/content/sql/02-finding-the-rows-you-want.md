@@ -146,8 +146,8 @@ FROM orders
 WHERE shipped_on IS NOT NULL;
 ```
 
-The same goes for `<>` and `NOT IN`: a comparison with `NULL` is never true, so a `NULL`
-inside a `NOT IN` list makes the whole condition unknown for every row.
+The same goes for `<>` and `NOT IN`: a comparison with `NULL` is never true, so with a
+`NULL` inside a `NOT IN` list the condition is never true for any row, and no row is returned.
 
 ## Showing a fallback with COALESCE
 

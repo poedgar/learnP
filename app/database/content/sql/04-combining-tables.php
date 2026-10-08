@@ -48,18 +48,18 @@ return [
             'explanation' => 'Both tables have an `id` column, so the database can\'t tell which you mean. Write `orders.id`, or use aliases such as `o.id`.',
         ],
         [
-            'question' => 'You forgot the `ON`. How many rows does this return in SQLite?',
+            'question' => 'You forgot the `ON`. What number does this query return in SQLite?',
             'code' => "SELECT COUNT(*)\nFROM customers\nJOIN orders;",
             'options' => ['10', '20', '30', '200'],
             'correct_option' => 3,
             'explanation' => 'Without `ON`, every customer is paired with every order: 10 × 20 = 200 rows. Some databases refuse to run a `JOIN` without `ON`.',
         ],
         [
-            'question' => 'Which condition completes this query so it finds books that have never been sold?',
-            'code' => "SELECT b.title\nFROM books AS b\nLEFT JOIN order_items AS oi ON oi.book_id = b.id\nWHERE …;",
-            'options' => ['`oi.book_id = NULL`', '`oi.book_id IS NULL`', '`b.id IS NULL`', '`oi.quantity = 0`'],
+            'question' => 'Which condition completes this query so it finds customers who have never ordered?',
+            'code' => "SELECT c.name\nFROM customers AS c\nLEFT JOIN orders AS o ON o.customer_id = c.id\nWHERE …;",
+            'options' => ['`o.id = NULL`', '`o.id IS NULL`', '`c.id IS NULL`', '`o.shipped_on IS NULL`'],
             'correct_option' => 1,
-            'explanation' => 'A book with no sales gets `NULL` in every `oi` column. `= NULL` never matches, `b.id` is never `NULL`, and there are no rows with a quantity of 0.',
+            'explanation' => 'A customer with no orders gets `NULL` in every `o` column. `= NULL` never matches and `c.id` is never `NULL`. `o.shipped_on IS NULL` also keeps every order that hasn\'t shipped yet, so test a column that is only `NULL` when there is no match, such as `o.id`.',
         ],
         [
             'question' => 'Why should revenue use `order_items.unit_price` rather than `books.price`?',

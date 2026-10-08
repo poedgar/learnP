@@ -83,6 +83,25 @@ class SqlLessonContentTest extends TestCase
         }
     }
 
+    /**
+     * Learners take the quiz before the challenges, so a quiz question must not
+     * hand them a challenge's answer. A "complete this query" question (code
+     * with a …) is compared with its correct option filled in.
+     */
+    public function test_no_quiz_question_gives_away_a_challenge_solution(): void
+    {
+        $normalise = fn (string $sql) => strtolower(preg_replace('/\s+/', ' ', trim($sql, " \n;")));
+
+        foreach ($this->lessons() as $lesson) {
+            $solutions = $lesson->challenges->map(fn ($challenge) => $normalise($challenge->solution))->all();
+
+            foreach ($lesson->quizQuestions->whereNotNull('code') as $question) {
+                $answered = str_replace('…', trim($question->options[$question->correct_option], '`'), $question->code);
+                $this->assertNotContains($normalise($answered), $solutions, "{$lesson->slug}: {$question->question}");
+            }
+        }
+    }
+
     public function test_reseeding_keeps_lesson_one_ids(): void
     {
         $ids = fn () => Lesson::where('slug', 'your-first-queries')->firstOrFail()->load('quizQuestions', 'challenges');
