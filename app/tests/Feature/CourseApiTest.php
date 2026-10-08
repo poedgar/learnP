@@ -23,7 +23,7 @@ class CourseApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'sql')
             ->assertJsonPath('data.0.language', 'sql')
-            ->assertJsonPath('data.0.lessons_count', 1)
+            ->assertJsonPath('data.0.lessons_count', 2)
             ->assertJsonPath('data.1.slug', 'php-oop')
             ->assertJsonPath('data.1.language', 'php');
     }
@@ -70,16 +70,11 @@ class CourseApiTest extends TestCase
 
     public function test_navigation_links_neighbouring_lessons(): void
     {
-        $course = Course::where('slug', 'sql')->first();
-        $course->lessons()->create([
-            'slug' => 'filtering', 'title' => 'Filtering', 'summary' => '', 'content' => '', 'dataset' => 'bookstore', 'position' => 2,
-        ]);
-
         $this->getJson('/api/courses/sql/lessons/your-first-queries')
-            ->assertJsonPath('navigation.next.slug', 'filtering');
-        $this->getJson('/api/courses/sql/lessons/filtering')
-            ->assertJsonPath('navigation.previous.slug', 'your-first-queries')
-            ->assertJsonPath('navigation.next', null);
+            ->assertJsonPath('navigation.previous', null)
+            ->assertJsonPath('navigation.next.slug', 'finding-the-rows-you-want');
+        $this->getJson('/api/courses/sql/lessons/finding-the-rows-you-want')
+            ->assertJsonPath('navigation.previous.slug', 'your-first-queries');
     }
 
     public function test_unknown_course_returns_not_found(): void

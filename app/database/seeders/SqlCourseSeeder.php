@@ -9,6 +9,15 @@ class SqlCourseSeeder extends Seeder
 {
     use SyncsLessonContent;
 
+    /**
+     * Lessons 2 onwards, in order. Each is a Markdown file (the theory) and a
+     * PHP file (title, summary, starter code, quiz and challenges) in
+     * database/content/sql, sharing this basename.
+     */
+    private const BOOKSHOP_LESSONS = [
+        '02-finding-the-rows-you-want',
+    ];
+
     public function run(): void
     {
         $course = Course::updateOrCreate(['slug' => 'sql'], [
@@ -29,6 +38,27 @@ class SqlCourseSeeder extends Seeder
 
         $this->syncByPosition($lesson->quizQuestions(), $this->quizQuestions());
         $this->syncByPosition($lesson->challenges(), $this->challenges());
+
+        foreach (self::BOOKSHOP_LESSONS as $index => $name) {
+            $this->seedBookshopLesson($course, $name, $index + 2);
+        }
+    }
+
+    private function seedBookshopLesson(Course $course, string $name, int $position): void
+    {
+        $definition = require database_path("content/sql/{$name}.php");
+
+        $lesson = $course->lessons()->updateOrCreate(['slug' => $definition['slug']], [
+            'title' => $definition['title'],
+            'summary' => $definition['summary'],
+            'content' => file_get_contents(database_path("content/sql/{$name}.md")),
+            'dataset' => 'bookshop',
+            'starter_code' => $definition['starter_code'],
+            'position' => $position,
+        ]);
+
+        $this->syncByPosition($lesson->quizQuestions(), $this->positioned($definition['quiz']));
+        $this->syncByPosition($lesson->challenges(), $this->positioned($definition['challenges']));
     }
 
     /**
