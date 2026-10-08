@@ -22,6 +22,7 @@ class SqlCourseSeeder extends Seeder
         '06-changing-data',
         '07-designing-tables',
         '08-shaping-values',
+        '09-naming-steps-with-with',
     ];
 
     public function run(): void
