@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { api, ApiError } from '../../../api/client';
 import type { QuizAnswer } from '../../../api/types';
 import { useProgressStore } from '../../../progress/store';
@@ -52,8 +52,10 @@ test('tapping twice while the answer is on its way sends one request', async () 
   await fireEvent.press(screen.getByRole('button', { name: 'Answer B' }));
 
   expect(api.answer).toHaveBeenCalledTimes(1);
-  resolve({ correct: false, correct_option: 1, explanation: 'It is FROM.' });
-  await first;
+  await act(async () => {
+    resolve({ correct: false, correct_option: 1, explanation: 'It is FROM.' });
+    await first;
+  });
 });
 
 test('an error is shown and the question stays open', async () => {
