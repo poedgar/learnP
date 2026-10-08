@@ -9,6 +9,8 @@ Courses so far:
 | **SQL** | *Your first queries* | on the server, in SQLite |
 | **OOP in PHP** | *Classes and objects* | in the browser, in PHP 8.4 compiled to WebAssembly |
 
+There is also a mobile app for iOS and Android in `../mobile` (Expo). See `../mobile/README.md`.
+
 Every lesson has four steps:
 
 - **Learn**: theory in Markdown, with a "Try it in the sandbox" button under every code example.
