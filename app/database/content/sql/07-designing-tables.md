@@ -96,7 +96,7 @@ columns makes a *combination* of columns unique.
 
 ## CHECK
 
-`CHECK` adds your own rule. Each row must make the condition true:
+`CHECK` adds your own rule. A row that makes the condition false is refused:
 
 ```sql
 -- Error: a stock count can't be negative.
@@ -109,6 +109,9 @@ INSERT INTO stock_counts VALUES (1, -2);
 
 Any condition you could write in a `WHERE` works, such as `CHECK (price > 0)` or
 `CHECK (genre IN ('Fantasy', 'Horror'))`.
+
+One catch: a condition about `NULL` is neither true nor false, so a `NULL` slips past a
+`CHECK`. If the column must have a value, add `NOT NULL` as well.
 
 ## Foreign keys
 

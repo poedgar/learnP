@@ -16,6 +16,9 @@ class SqlSandbox
 {
     public const MAX_SQL_LENGTH = 10_000;
 
+    /** Stands in for a challenge's check query in what the learner sees, so the check itself stays on the server. */
+    public const CHECK_LABEL = 'Checking what your SQL changed';
+
     public function __construct(
         private readonly string $datasetPath,
         private readonly float $timeoutSeconds = 3.0,
@@ -81,13 +84,20 @@ class SqlSandbox
             throw new RuntimeException('Challenge solution does not return rows.');
         }
 
+        $failedInCheck = false;
+
+        if ($checkSql !== null) {
+            $learnerStatements = count(StatementSplitter::split($sql));
+            $failedInCheck = $run['error'] !== null
+                && $run['error']['statement'] !== null
+                && $run['error']['statement'] >= $learnerStatements;
+            $run = $this->hideCheck($run, $learnerStatements);
+            $expected['sql'] = self::CHECK_LABEL;
+        }
+
         $fail = fn (string $message) => ['passed' => false, 'message' => $message, 'run' => $run, 'expected' => $expected];
 
         if ($run['error'] !== null) {
-            $failedInCheck = $checkSql !== null
-                && $run['error']['statement'] !== null
-                && $run['error']['statement'] >= count(StatementSplitter::split($sql));
-
             return $fail($failedInCheck
                 ? 'Your SQL ran, but checking what it changed failed: '.$run['error']['message'].'. Make sure you made every change the challenge asks for.'
                 : 'Your SQL has an error. Fix it and check again.');
@@ -144,6 +154,26 @@ class SqlSandbox
         }
 
         return file_get_contents($path);
+    }
+
+    /**
+     * Keeps the learner's own statements' results and replaces the check's with
+     * just its final table, labelled, so the check's SQL never reaches the learner.
+     */
+    private function hideCheck(array $run, int $learnerStatements): array
+    {
+        $check = $this->lastRowSet(array_slice($run['results'], $learnerStatements));
+        $run['results'] = array_slice($run['results'], 0, $learnerStatements);
+
+        if ($run['error'] === null && $check !== null) {
+            $run['results'][] = [...$check, 'sql' => self::CHECK_LABEL];
+        }
+
+        if ($run['error'] !== null && ($run['error']['statement'] ?? -1) >= $learnerStatements) {
+            $run['error']['statement'] = null;
+        }
+
+        return $run;
     }
 
     private function lastRowSet(array $results): ?array

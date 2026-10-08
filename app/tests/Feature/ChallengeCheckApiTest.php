@@ -115,4 +115,38 @@ class ChallengeCheckApiTest extends TestCase
             $this->assertArrayNotHasKey('check_sql', $challenge);
         }
     }
+
+    public function test_table_challenges_accept_autoincrement_and_test_rows(): void
+    {
+        $this->check('An authors table', 'CREATE TABLE authors (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);')
+            ->assertJsonPath('passed', true);
+        $this->check('An authors table', "CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT NOT NULL);\nINSERT INTO authors (name) VALUES ('Tolkien');\nSELECT * FROM authors;")
+            ->assertJsonPath('passed', true);
+        $this->check('Star ratings', "CREATE TABLE ratings (id INTEGER PRIMARY KEY, book_id INTEGER NOT NULL, stars INTEGER NOT NULL CHECK (stars BETWEEN 1 AND 5));\nINSERT INTO ratings (book_id, stars) VALUES (2, 4);")
+            ->assertJsonPath('passed', true);
+        $this->check('Reviews that point somewhere', 'CREATE TABLE reviews (id INTEGER PRIMARY KEY, book_id INTEGER NOT NULL REFERENCES Books (id), customer_id INTEGER NOT NULL REFERENCES Customers (id), body TEXT NOT NULL);')
+            ->assertJsonPath('passed', true);
+    }
+
+    public function test_table_challenges_reject_designs_missing_a_rule(): void
+    {
+        $this->check('Newsletter sign-ups', "CREATE TABLE newsletter_signups (email TEXT NOT NULL UNIQUE, signed_up_on TEXT DEFAULT '2026-04-08');")
+            ->assertJsonPath('passed', false);
+        $this->check('Star ratings', 'CREATE TABLE ratings (id INTEGER PRIMARY KEY, book_id INTEGER, stars INTEGER NOT NULL CHECK (stars BETWEEN 1 AND 5));')
+            ->assertJsonPath('passed', false);
+        $this->check('Reviews that point somewhere', 'CREATE TABLE reviews (book_id REFERENCES books, customer_id REFERENCES customers);')
+            ->assertJsonPath('passed', false);
+        $this->check('Wish lists', "CREATE TABLE wishlist_items (customer_id INTEGER NOT NULL REFERENCES books (id), book_id INTEGER NOT NULL REFERENCES customers (id), added_on TEXT NOT NULL DEFAULT '2026-04-08', PRIMARY KEY (customer_id, book_id));")
+            ->assertJsonPath('passed', false);
+    }
+
+    public function test_the_check_response_does_not_reveal_the_check_query(): void
+    {
+        $response = $this->check('Newsletter sign-ups', "CREATE TABLE newsletter_signups (email TEXT NOT NULL UNIQUE, signed_up_date TEXT NOT NULL DEFAULT '2026-04-08');")
+            ->assertJsonPath('passed', false)
+            ->assertJsonPath('run.error.statement', null);
+
+        $this->assertStringNotContainsString('INSERT OR IGNORE', $response->getContent());
+        $this->assertStringNotContainsString('newsletter_signups ORDER BY', $response->getContent());
+    }
 }
