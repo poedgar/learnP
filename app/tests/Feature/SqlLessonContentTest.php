@@ -23,6 +23,7 @@ class SqlLessonContentTest extends TestCase
         ['your-first-queries', 'bookstore'],
         ['finding-the-rows-you-want', 'bookshop'],
         ['summarising-data', 'bookshop'],
+        ['combining-tables', 'bookshop'],
     ];
 
     /**

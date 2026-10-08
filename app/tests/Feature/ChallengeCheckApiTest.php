@@ -77,4 +77,13 @@ class ChallengeCheckApiTest extends TestCase
         $this->check('Titles and authors', 'SELECT 1; SELECT title, author FROM books;')
             ->assertJsonPath('passed', true);
     }
+
+    public function test_counting_rows_instead_of_orders_after_a_left_join_fails(): void
+    {
+        // COUNT(*) counts the NULL row a LEFT JOIN adds, so customers with no orders get 1, not 0.
+        $this->check('Orders per customer', 'SELECT c.name, COUNT(*) FROM customers AS c LEFT JOIN orders AS o ON o.customer_id = c.id GROUP BY c.id, c.name')
+            ->assertJsonPath('passed', false);
+        $this->check('Orders per customer', 'SELECT c.name, COUNT(o.id) FROM customers AS c LEFT JOIN orders AS o ON o.customer_id = c.id GROUP BY c.id, c.name')
+            ->assertJsonPath('passed', true);
+    }
 }

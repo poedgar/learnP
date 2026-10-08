@@ -87,7 +87,7 @@ return [
             'prompt' => 'List the `title` and `author` of the books by Jane Austen, Mary Shelley and Bram Stoker. Use `IN` rather than three `OR`s.',
             'starter_code' => null,
             'solution' => "SELECT title, author FROM books WHERE author IN ('Jane Austen', 'Mary Shelley', 'Bram Stoker');",
-            'hint' => "Put the three names, each in single quotes, inside `IN ( … )`, separated by commas.",
+            'hint' => 'Put the three names, each in single quotes, inside `IN ( … )`, separated by commas.',
             'order_matters' => false,
         ],
         [
@@ -119,7 +119,7 @@ return [
             'prompt' => 'Find the customers who live in **London or Leeds** and **joined in 2026**. Show their `name` and `city`, in alphabetical order by name.',
             'starter_code' => null,
             'solution' => "SELECT name, city FROM customers WHERE city IN ('London', 'Leeds') AND joined_on BETWEEN '2026-01-01' AND '2026-12-31' ORDER BY name;",
-            'hint' => "Combine `city IN (…)` with a date range on `joined_on` using `AND`, then sort with `ORDER BY name`.",
+            'hint' => 'Combine `city IN (…)` with a date range on `joined_on` using `AND`, then sort with `ORDER BY name`.',
             'order_matters' => true,
         ],
     ],
