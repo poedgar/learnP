@@ -1,0 +1,236 @@
+import { useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { api } from '../../api/client';
+import type { Challenge, Language, Lesson, PhpCheck, PhpRun, SqlCheck, SqlRun } from '../../api/types';
+import { CodeEditor } from '../../editor/CodeEditor';
+import { phpCheckMessage } from '../../lesson/php';
+import { updateLesson, useLessonProgress, useProgressStore } from '../../progress/store';
+import { useTheme } from '../../theme';
+import { Button } from '../Button';
+import { Markdown } from '../markdown/Markdown';
+import { PhpCheckDetails } from '../results/PhpCheckDetails';
+import { PhpOutput } from '../results/PhpOutput';
+import { RunResults } from '../results/RunResults';
+import { SqlCheckDetails } from '../results/SqlCheckDetails';
+
+type Props = { lesson: Lesson; language: Language };
+
+type RunView = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun };
+type CheckView = { kind: 'sql'; check: SqlCheck; message: string } | { kind: 'php'; check: PhpCheck; message: string };
+
+function savedCode(lessonId: number, challenge: Challenge): string {
+  return useProgressStore.getState().lessons[lessonId]?.challenges[challenge.id]?.code ?? challenge.starter_code ?? '';
+}
+
+/** Tasks checked on the server: SQL against a reference result, PHP against the challenge's checks. */
+export function ChallengesStep({ lesson, language }: Props) {
+  const theme = useTheme();
+  const challenges = lesson.challenges;
+  const progress = useLessonProgress(lesson.id);
+  const [index, setIndex] = useState(() => {
+    const first = challenges.findIndex((c) => !progress.challenges[c.id]?.passed);
+    return first === -1 ? 0 : first;
+  });
+  const [editor, setEditor] = useState(() => ({
+    value: challenges.length ? savedCode(lesson.id, challenges[index]) : '',
+    key: 0,
+  }));
+  const code = useRef(editor.value);
+  const working = useRef(false);
+  const [busy, setBusy] = useState<'run' | 'check' | null>(null);
+  const [run, setRun] = useState<RunView | null>(null);
+  const [check, setCheck] = useState<CheckView | null>(null);
+  const [failure, setFailure] = useState('');
+  const [showHint, setShowHint] = useState(false);
+  const scroll = useRef<ScrollView>(null);
+  const editorY = useRef(0);
+
+  if (challenges.length === 0) {
+    return (
+      <View style={styles.page}>
+        <Text style={[styles.text, { color: theme.ink }]}>This lesson has no challenges yet.</Text>
+      </View>
+    );
+  }
+
+  const active = challenges[index];
+  const solved = challenges.filter((c) => progress.challenges[c.id]?.passed).length;
+  const order = [...challenges.slice(index + 1), ...challenges.slice(0, index)];
+  const nextUnsolved = order.find((c) => !progress.challenges[c.id]?.passed) ?? null;
+
+  function save(value: string, passed?: boolean) {
+    code.current = value;
+    updateLesson(lesson.id, (current) => ({
+      challenges: {
+        ...current.challenges,
+        [active.id]: { passed: passed ?? current.challenges[active.id]?.passed ?? false, code: value },
+      },
+    }));
+  }
+
+  function load(value: string) {
+    code.current = value;
+    setEditor((current) => ({ value, key: current.key + 1 }));
+  }
+
+  function open(challenge: Challenge) {
+    setIndex(challenges.indexOf(challenge));
+    load(savedCode(lesson.id, challenge));
+    setRun(null);
+    setCheck(null);
+    setFailure('');
+    setShowHint(false);
+  }
+
+  async function work(kind: 'run' | 'check') {
+    if (working.current) return;
+    working.current = true;
+    setBusy(kind);
+    setFailure('');
+    setRun(null);
+    setCheck(null);
+    try {
+      if (kind === 'run') {
+        setRun(
+          language === 'sql'
+            ? { kind: 'sql', run: await api.runSql(lesson.id, code.current) }
+            : { kind: 'php', run: await api.runPhp(lesson.id, code.current) },
+        );
+      } else if (language === 'sql') {
+        const result = await api.checkSql(active.id, code.current);
+        setCheck({ kind: 'sql', check: result, message: result.message });
+        if (result.passed) save(code.current, true);
+      } else {
+        const result = await api.checkPhp(active.id, code.current);
+        setCheck({ kind: 'php', check: result, message: phpCheckMessage(result) });
+        if (result.passed) save(code.current, true);
+      }
+    } catch (e) {
+      setFailure(e instanceof Error ? e.message : 'Something went wrong. Try again.');
+    } finally {
+      working.current = false;
+      setBusy(null);
+    }
+  }
+
+  return (
+    <ScrollView ref={scroll} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+      <Text style={[styles.solved, { color: theme.muted }]}>{`${solved} of ${challenges.length} solved`}</Text>
+      <View style={styles.chips}>
+        {challenges.map((challenge, i) => {
+          const passed = progress.challenges[challenge.id]?.passed ?? false;
+          return (
+            <Pressable
+              key={challenge.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Challenge ${i + 1}: ${challenge.title}`}
+              accessibilityState={{ selected: i === index }}
+              onPress={() => open(challenge)}
+              style={[
+                styles.chip,
+                {
+                  borderColor: i === index ? theme.ink : passed ? theme.ok : theme.line,
+                  backgroundColor: passed ? theme.okSoft : theme.surface,
+                },
+              ]}
+            >
+              <Text style={[styles.chipText, { color: passed ? theme.ok : theme.ink }]}>{passed ? '✓' : i + 1}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text accessibilityRole="header" style={[styles.title, { color: theme.ink }]}>
+        {active.title}
+      </Text>
+      <Markdown source={active.prompt} />
+      {active.order_matters ? (
+        <Text style={[styles.note, { color: theme.muted }]}>Row order is checked for this challenge.</Text>
+      ) : null}
+      {active.hint ? (
+        <View style={styles.hint}>
+          <Button variant="quiet" title={showHint ? 'Hide hint' : 'Show a hint'} onPress={() => setShowHint(!showHint)} />
+          {showHint ? <Text style={[styles.text, { color: theme.ink }]}>{active.hint}</Text> : null}
+        </View>
+      ) : null}
+
+      <View onLayout={(event) => (editorY.current = event.nativeEvent.layout.y)}>
+        <CodeEditor
+          value={editor.value}
+          resetKey={editor.key}
+          language={language}
+          onChange={(value) => save(value)}
+          label={`Code for challenge: ${active.title}`}
+          onFocus={() => scroll.current?.scrollTo({ y: Math.max(editorY.current - 8, 0), animated: true })}
+        />
+      </View>
+      <View style={styles.actions}>
+        <Button title={busy === 'run' ? 'Running…' : 'Run'} onPress={() => work('run')} disabled={busy !== null} />
+        <Button
+          variant="primary"
+          title={busy === 'check' ? 'Checking…' : 'Check answer'}
+          onPress={() => work('check')}
+          disabled={busy !== null}
+        />
+        <Button
+          variant="quiet"
+          title="Start over"
+          onPress={() => {
+            save(active.starter_code ?? '');
+            load(active.starter_code ?? '');
+            setRun(null);
+            setCheck(null);
+          }}
+        />
+      </View>
+
+      {failure ? (
+        <Text accessibilityRole="alert" style={[styles.text, { color: theme.bad }]}>
+          {failure}
+        </Text>
+      ) : null}
+
+      {check ? (
+        <View style={styles.result}>
+          <View
+            style={[
+              styles.verdict,
+              {
+                backgroundColor: check.check.passed ? theme.okSoft : theme.badSoft,
+                borderColor: check.check.passed ? theme.ok : theme.bad,
+              },
+            ]}
+          >
+            <Text style={[styles.verdictText, { color: theme.ink }]}>{check.message}</Text>
+            {check.check.passed && nextUnsolved ? (
+              <Button variant="primary" title="Next challenge" onPress={() => open(nextUnsolved)} />
+            ) : null}
+            {check.check.passed && !nextUnsolved ? (
+              <Text style={[styles.text, { color: theme.ink }]}>You've solved every challenge in this lesson.</Text>
+            ) : null}
+          </View>
+          {check.kind === 'sql' ? <SqlCheckDetails check={check.check} /> : <PhpCheckDetails check={check.check} />}
+        </View>
+      ) : null}
+
+      {run?.kind === 'sql' ? <RunResults run={run.run} /> : null}
+      {run?.kind === 'php' ? <PhpOutput {...run.run} /> : null}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  page: { padding: 20, gap: 14, paddingBottom: 120 },
+  text: { fontSize: 16, lineHeight: 24 },
+  solved: { fontSize: 14 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  chipText: { fontSize: 15, fontWeight: '700' },
+  title: { fontSize: 22, fontWeight: '800' },
+  note: { fontSize: 14 },
+  hint: { gap: 6, alignItems: 'flex-start' },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  result: { gap: 12 },
+  verdict: { borderWidth: 1, borderRadius: 8, padding: 12, gap: 10 },
+  verdictText: { fontSize: 16, fontWeight: '700', lineHeight: 23 },
+});
