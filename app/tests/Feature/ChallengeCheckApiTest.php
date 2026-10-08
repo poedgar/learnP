@@ -149,4 +149,12 @@ class ChallengeCheckApiTest extends TestCase
         $this->assertStringNotContainsString('INSERT OR IGNORE', $response->getContent());
         $this->assertStringNotContainsString('newsletter_signups ORDER BY', $response->getContent());
     }
+
+    public function test_whole_days_and_julianday_days_both_pass(): void
+    {
+        $this->check('How long shipping took', "SELECT id, CASE WHEN shipped_on IS NULL THEN 'not shipped' ELSE CAST(julianday(shipped_on) - julianday(ordered_on) AS INTEGER) END FROM orders")
+            ->assertJsonPath('passed', true);
+        $this->check('How long shipping took', "SELECT id, COALESCE(julianday(shipped_on) - julianday(ordered_on), 'not shipped') FROM orders")
+            ->assertJsonPath('passed', true);
+    }
 }

@@ -28,6 +28,7 @@ class SqlLessonContentTest extends TestCase
         ['queries-inside-queries', 'bookshop'],
         ['changing-data', 'bookshop'],
         ['designing-tables', 'bookshop'],
+        ['shaping-values', 'bookshop'],
     ];
 
     /**
