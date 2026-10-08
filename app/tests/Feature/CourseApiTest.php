@@ -23,7 +23,7 @@ class CourseApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'sql')
             ->assertJsonPath('data.0.language', 'sql')
-            ->assertJsonPath('data.0.lessons_count', 4)
+            ->assertJsonPath('data.0.lessons_count', 5)
             ->assertJsonPath('data.1.slug', 'php-oop')
             ->assertJsonPath('data.1.language', 'php');
     }
@@ -77,7 +77,9 @@ class CourseApiTest extends TestCase
             ->assertJsonPath('navigation.previous.slug', 'your-first-queries');
         $this->getJson('/api/courses/sql/lessons/combining-tables')
             ->assertJsonPath('navigation.previous.slug', 'summarising-data')
-            ->assertJsonPath('navigation.next', null);
+            ->assertJsonPath('navigation.next.slug', 'queries-inside-queries');
+        $this->getJson('/api/courses/sql/lessons/queries-inside-queries')
+            ->assertJsonPath('navigation.previous.slug', 'combining-tables');
     }
 
     public function test_unknown_course_returns_not_found(): void
