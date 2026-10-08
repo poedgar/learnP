@@ -19,6 +19,7 @@ class SqlCourseSeeder extends Seeder
         '03-summarising-data',
         '04-combining-tables',
         '05-queries-inside-queries',
+        '06-changing-data',
     ];
 
     public function run(): void

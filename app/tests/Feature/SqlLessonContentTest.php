@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Challenge;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Sandbox\SqlSandbox;
@@ -25,6 +26,7 @@ class SqlLessonContentTest extends TestCase
         ['summarising-data', 'bookshop'],
         ['combining-tables', 'bookshop'],
         ['queries-inside-queries', 'bookshop'],
+        ['changing-data', 'bookshop'],
     ];
 
     /**
@@ -100,6 +102,31 @@ class SqlLessonContentTest extends TestCase
                 $answered = str_replace('…', trim($question->options[$question->correct_option], '`'), $question->code);
                 $this->assertNotContains($normalise($answered), $solutions, "{$lesson->slug}: {$question->question}");
             }
+        }
+    }
+
+    /**
+     * A challenge with a follow-up check must change what the check sees, or a
+     * learner could pass without changing anything.
+     */
+    public function test_every_follow_up_check_sees_what_the_solution_changed(): void
+    {
+        $sandbox = app(SqlSandbox::class);
+        $challenges = Challenge::whereNotNull('check_sql')->with('lesson')->get();
+        $this->assertNotEmpty($challenges, 'No challenge has a follow-up check yet.');
+
+        foreach ($challenges as $challenge) {
+            $solved = $sandbox->run($challenge->lesson->dataset, $challenge->solution."\n;\n".$challenge->check_sql);
+            $untouched = $sandbox->run($challenge->lesson->dataset, $challenge->check_sql);
+
+            $this->assertNull($solved['error'], "{$challenge->title}: ".($solved['error']['message'] ?? ''));
+            // Compare rows only: each result also carries its run time, which differs between runs.
+            $rows = fn (array $run) => $run['error'] === null ? (end($run['results'])['rows'] ?? null) : null;
+            $this->assertNotEquals(
+                $rows($solved),
+                $rows($untouched),
+                "{$challenge->title}: the check sees the same thing whether or not the solution ran",
+            );
         }
     }
 
