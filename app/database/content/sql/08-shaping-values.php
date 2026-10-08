@@ -104,7 +104,7 @@ return [
         ],
         [
             'title' => 'Slow shipping by month',
-            'prompt' => 'For each month (written like `2026-03`), show the number of orders placed and how many of them took **more than 2 days** to ship, in month order.',
+            'prompt' => 'For each month (written like `2026-03`), show the number of orders placed and how many of them took **more than 2 days** to ship (orders that haven\'t shipped yet don\'t count as slow), in month order.',
             'starter_code' => null,
             'solution' => "SELECT strftime('%Y-%m', ordered_on) AS month, COUNT(*) AS orders, SUM(CASE WHEN julianday(shipped_on) - julianday(ordered_on) > 2 THEN 1 ELSE 0 END) AS slow FROM orders GROUP BY month ORDER BY month;",
             'hint' => 'Group by the `strftime` month. Count slow orders with `SUM(CASE WHEN … > 2 THEN 1 ELSE 0 END)`; unshipped orders give `NULL`, which isn\'t greater than 2.',

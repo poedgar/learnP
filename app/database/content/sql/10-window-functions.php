@@ -80,10 +80,10 @@ return [
     'challenges' => [
         [
             'title' => 'Against the genre average',
-            'prompt' => 'Show each book\'s `title`, `genre`, `price`, and how far its price is from its genre\'s average price (price minus average, rounded to 2 places).',
+            'prompt' => 'Show each book\'s `title`, `genre` and `price`, and whether its price is `above`, `below` or `at` the average price of its genre.',
             'starter_code' => null,
-            'solution' => 'SELECT title, genre, price, ROUND(price - AVG(price) OVER (PARTITION BY genre), 2) AS difference FROM books;',
-            'hint' => '`AVG(price) OVER (PARTITION BY genre)` gives the genre average on every row; subtract it from `price`.',
+            'solution' => "SELECT title, genre, price, CASE WHEN price > AVG(price) OVER (PARTITION BY genre) THEN 'above' WHEN price < AVG(price) OVER (PARTITION BY genre) THEN 'below' ELSE 'at' END AS compared FROM books;",
+            'hint' => '`AVG(price) OVER (PARTITION BY genre)` gives the genre average on every row; compare `price` with it inside a `CASE`.',
             'order_matters' => false,
         ],
         [

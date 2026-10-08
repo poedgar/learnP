@@ -157,4 +157,10 @@ class ChallengeCheckApiTest extends TestCase
         $this->check('How long shipping took', "SELECT id, COALESCE(julianday(shipped_on) - julianday(ordered_on), 'not shipped') FROM orders")
             ->assertJsonPath('passed', true);
     }
+
+    public function test_rounding_the_genre_average_first_still_passes(): void
+    {
+        $this->check('Against the genre average', "SELECT title, genre, price, CASE WHEN price > ROUND(AVG(price) OVER (PARTITION BY genre), 2) THEN 'above' WHEN price < ROUND(AVG(price) OVER (PARTITION BY genre), 2) THEN 'below' ELSE 'at' END FROM books")
+            ->assertJsonPath('passed', true);
+    }
 }
