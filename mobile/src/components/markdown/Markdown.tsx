@@ -50,7 +50,7 @@ function Block({ token, theme, runnable, onTry }: BlockProps): ReactNode {
     case 'heading': {
       const heading = token as Tokens.Heading;
       return (
-        <Text accessibilityRole="header" style={[heading.depth <= 2 ? styles.h2 : styles.h3, { color: theme.ink }]}>
+        <Text accessibilityRole="header" style={[HEADINGS[heading.depth - 1] ?? styles.h6, { color: theme.ink }]}>
           {renderInline(heading.tokens, theme)}
         </Text>
       );
@@ -202,8 +202,12 @@ function renderInline(tokens: Token[] | undefined, theme: Theme): ReactNode[] {
 const styles = StyleSheet.create({
   blocks: { gap: 14 },
   body: { fontSize: 16, lineHeight: 24 },
+  h1: { fontSize: 28, fontWeight: '800', lineHeight: 34, marginTop: 8 },
   h2: { fontSize: 24, fontWeight: '800', lineHeight: 30, marginTop: 6 },
-  h3: { fontSize: 19, fontWeight: '700', lineHeight: 26, marginTop: 4 },
+  h3: { fontSize: 20, fontWeight: '700', lineHeight: 27, marginTop: 4 },
+  h4: { fontSize: 18, fontWeight: '700', lineHeight: 25, marginTop: 4 },
+  h5: { fontSize: 17, fontWeight: '700', lineHeight: 24, marginTop: 2 },
+  h6: { fontSize: 16, fontWeight: '700', lineHeight: 24, marginTop: 2 },
   strong: { fontWeight: '700' },
   em: { fontStyle: 'italic' },
   del: { textDecorationLine: 'line-through' },
@@ -221,3 +225,5 @@ const styles = StyleSheet.create({
   headerCell: { fontWeight: '700' },
   hr: { height: 1 },
 });
+
+const HEADINGS = [styles.h1, styles.h2, styles.h3, styles.h4, styles.h5, styles.h6];

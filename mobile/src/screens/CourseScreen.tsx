@@ -47,7 +47,7 @@ function LessonRow({ lesson, courseSlug }: { lesson: Lesson; courseSlug: string 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Lesson ${lesson.position}: ${lesson.title}`}
+      accessibilityLabel={`Lesson ${lesson.position}: ${lesson.title}${progress ? `. ${progress}` : ''}`}
       onPress={() => router.push(`/courses/${courseSlug}/lessons/${lesson.slug}`)}
       style={({ pressed }) => [
         styles.lesson,

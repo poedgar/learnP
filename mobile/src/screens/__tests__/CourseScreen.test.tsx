@@ -46,3 +46,16 @@ test('an unknown course says so without a retry button', async () => {
   expect(await screen.findByText("We couldn't find that course.")).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
 });
+
+test('screen readers hear a lesson’s progress', async () => {
+  jest.spyOn(api, 'course').mockResolvedValue(sqlCourse);
+  await renderWithClient(<CourseScreen slug="sql" />);
+  await screen.findByText('Your first queries');
+
+  expect(screen.getByRole('button', { name: 'Lesson 1: Your first queries' })).toBeTruthy();
+
+  await act(async () => updateLesson(1, () => ({ read: true })));
+  expect(
+    screen.getByRole('button', { name: 'Lesson 1: Your first queries. Quiz 0/2 correct, challenges 0/2 solved.' }),
+  ).toBeTruthy();
+});

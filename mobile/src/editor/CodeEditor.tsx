@@ -1,4 +1,4 @@
-import { useId, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { useColorScheme, View } from 'react-native';
 import type { Language } from '../api/types';
 import { useTheme } from '../theme';
@@ -22,6 +22,9 @@ export function CodeEditor({ value, resetKey, language, onChange, label, height 
   const id = useId();
   const handle = useRef<EditorHandle>(null);
   const { focus, blur } = useKeyBarStore.getState();
+
+  // An editor can unmount while focused (leaving the lesson); don't leave the key bar typing into it.
+  useEffect(() => () => useKeyBarStore.getState().blur(id), [id]);
 
   return (
     <View

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { Markdown } from '../Markdown';
 
 const source = [
@@ -57,4 +58,15 @@ test('inline mode renders a single run of text', async () => {
   await render(<Markdown source="Pick `FROM`." inline />);
 
   expect(screen.getByText('FROM')).toBeTruthy();
+});
+
+test('each heading level is smaller than the one above it', async () => {
+  await render(<Markdown source={'# One\n\n## Two\n\n### Three\n\n#### Four\n\n##### Five\n\n###### Six'} />);
+
+  const sizes = ['One', 'Two', 'Three', 'Four', 'Five', 'Six'].map(
+    (text) => StyleSheet.flatten(screen.getByText(text).props.style).fontSize as number,
+  );
+  for (let i = 1; i < sizes.length; i++) {
+    expect(sizes[i]).toBeLessThan(sizes[i - 1]);
+  }
 });

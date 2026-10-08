@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api/client';
 import type { Language, Lesson } from '../../api/types';
@@ -10,7 +10,7 @@ import { Markdown } from '../markdown/Markdown';
 
 type Props = { lesson: Lesson; language: Language; onNext: () => void; onTry: (code: string) => void };
 
-const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const letter = (index: number) => String.fromCharCode(65 + index);
 
 /** One question per page; answers are checked on the server and kept in progress. */
 export function QuizStep({ lesson, language, onNext, onTry }: Props) {
@@ -22,6 +22,8 @@ export function QuizStep({ lesson, language, onNext, onTry }: Props) {
     return firstOpen === -1 ? 0 : firstOpen;
   });
   const [pending, setPending] = useState(false);
+  // A ref, so a second tap before React re-renders is refused too.
+  const answering = useRef(false);
   const [error, setError] = useState('');
 
   if (questions.length === 0) {
@@ -45,7 +47,8 @@ export function QuizStep({ lesson, language, onNext, onTry }: Props) {
   }
 
   async function choose(option: number) {
-    if (answer || pending) return;
+    if (answer || answering.current) return;
+    answering.current = true;
     setPending(true);
     setError('');
     try {
@@ -54,6 +57,7 @@ export function QuizStep({ lesson, language, onNext, onTry }: Props) {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Try again.');
     } finally {
+      answering.current = false;
       setPending(false);
     }
   }
@@ -113,13 +117,13 @@ export function QuizStep({ lesson, language, onNext, onTry }: Props) {
           <Pressable
             key={i}
             accessibilityRole="button"
-            accessibilityLabel={`Answer ${LETTERS[i]}`}
+            accessibilityLabel={`Answer ${letter(i)}`}
             accessibilityState={{ disabled: Boolean(answer) || pending, selected: answer?.option === i }}
             disabled={Boolean(answer) || pending}
             onPress={() => choose(i)}
             style={[styles.option, optionColors(i)]}
           >
-            <Text style={[styles.letter, { color: theme.muted }]}>{LETTERS[i]}</Text>
+            <Text style={[styles.letter, { color: theme.muted }]}>{letter(i)}</Text>
             <View style={styles.optionText}>
               <Markdown source={option} inline />
             </View>

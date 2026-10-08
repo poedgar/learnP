@@ -1,3 +1,4 @@
+import { act as reactAct } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { api, ApiError } from '../../../api/client';
 import type { QuizAnswer } from '../../../api/types';
@@ -56,6 +57,29 @@ test('tapping twice while the answer is on its way sends one request', async () 
     resolve({ correct: false, correct_option: 1, explanation: 'It is FROM.' });
     await first;
   });
+});
+
+test('two taps in the same frame send one request', async () => {
+  jest.spyOn(api, 'answer').mockResolvedValue({ correct: true, correct_option: 1, explanation: 'FROM names the table.' });
+  await renderQuiz();
+  const a = screen.getByRole('button', { name: 'Answer A' });
+  const b = screen.getByRole('button', { name: 'Answer B' });
+
+  // Both touches end before React re-renders: call the press handlers inside one synchronous act().
+  reactAct(() => {
+    a.props.onClick({ nativeEvent: {} });
+    b.props.onClick({ nativeEvent: {} });
+  });
+  await screen.findByText('Correct.');
+
+  expect(api.answer).toHaveBeenCalledTimes(1);
+});
+
+test('options past F keep counting letters', async () => {
+  const options = ['1', '2', '3', '4', '5', '6', '7'];
+  await renderQuiz({ lesson: { ...lesson, quiz_questions: [{ id: 11, question: 'Pick one', code: null, options }] } });
+
+  expect(screen.getByRole('button', { name: 'Answer G' })).toBeTruthy();
 });
 
 test('an error is shown and the question stays open', async () => {
