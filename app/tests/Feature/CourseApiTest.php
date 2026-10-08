@@ -23,7 +23,7 @@ class CourseApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.slug', 'sql')
             ->assertJsonPath('data.0.language', 'sql')
-            ->assertJsonPath('data.0.lessons_count', 2)
+            ->assertJsonPath('data.0.lessons_count', 3)
             ->assertJsonPath('data.1.slug', 'php-oop')
             ->assertJsonPath('data.1.language', 'php');
     }

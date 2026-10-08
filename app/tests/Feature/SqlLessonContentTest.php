@@ -22,6 +22,7 @@ class SqlLessonContentTest extends TestCase
     private const LESSONS = [
         ['your-first-queries', 'bookstore'],
         ['finding-the-rows-you-want', 'bookshop'],
+        ['summarising-data', 'bookshop'],
     ];
 
     /**

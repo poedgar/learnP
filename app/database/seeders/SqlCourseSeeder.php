@@ -16,6 +16,7 @@ class SqlCourseSeeder extends Seeder
      */
     private const BOOKSHOP_LESSONS = [
         '02-finding-the-rows-you-want',
+        '03-summarising-data',
     ];
 
     public function run(): void
