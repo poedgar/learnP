@@ -60,7 +60,7 @@ class PhpChallengeHarnessTest extends TestCase
     public function test_every_php_challenge_solution_passes_all_its_checks(): void
     {
         $challenges = Challenge::whereNotNull('checks')->get();
-        $this->assertCount(35, $challenges);
+        $this->assertCount(41, $challenges);
 
         foreach ($challenges as $challenge) {
             $report = $this->runHarness($challenge->solution, $challenge->checks);

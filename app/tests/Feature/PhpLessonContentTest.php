@@ -27,6 +27,7 @@ class PhpLessonContentTest extends TestCase
         'static-members-constants-and-enums',
         'exceptions',
         'traits-and-readonly-properties',
+        'putting-objects-together',
     ];
 
     /**

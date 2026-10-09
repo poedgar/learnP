@@ -20,6 +20,7 @@ class PhpOopCourseSeeder extends Seeder
         '04-static-members-constants-and-enums',
         '05-exceptions',
         '06-traits-and-readonly-properties',
+        '07-putting-objects-together',
     ];
 
     public function run(): void
