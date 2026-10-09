@@ -17,6 +17,7 @@ class PhpOopCourseSeeder extends Seeder
     private const LATER_LESSONS = [
         '02-inheritance',
         '03-interfaces-and-abstract-classes',
+        '04-static-members-constants-and-enums',
     ];
 
     public function run(): void

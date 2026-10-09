@@ -26,7 +26,7 @@ class CourseApiTest extends TestCase
             ->assertJsonPath('data.0.lessons_count', 10)
             ->assertJsonPath('data.1.slug', 'php-oop')
             ->assertJsonPath('data.1.language', 'php')
-            ->assertJsonPath('data.1.lessons_count', 3);
+            ->assertJsonPath('data.1.lessons_count', 4);
     }
 
     public function test_course_lists_its_lessons_without_their_content(): void

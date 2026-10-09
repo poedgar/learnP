@@ -24,6 +24,7 @@ class PhpLessonContentTest extends TestCase
         'classes-and-objects',
         'inheritance',
         'interfaces-and-abstract-classes',
+        'static-members-constants-and-enums',
     ];
 
     /**
