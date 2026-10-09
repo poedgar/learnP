@@ -18,6 +18,7 @@ class PhpOopCourseSeeder extends Seeder
         '02-inheritance',
         '03-interfaces-and-abstract-classes',
         '04-static-members-constants-and-enums',
+        '05-exceptions',
     ];
 
     public function run(): void
