@@ -9,6 +9,15 @@ class PhpOopCourseSeeder extends Seeder
 {
     use SyncsLessonContent;
 
+    /**
+     * Lessons 2 onwards, in order. Each is a Markdown file (the theory) and a
+     * PHP file (title, summary, starter code, quiz, and challenges with their
+     * checks) in database/content/php-oop, sharing this basename.
+     */
+    private const LATER_LESSONS = [
+        '02-inheritance',
+    ];
+
     public function run(): void
     {
         $course = Course::updateOrCreate(['slug' => 'php-oop'], [
@@ -48,6 +57,27 @@ class PhpOopCourseSeeder extends Seeder
 
         $this->syncByPosition($lesson->quizQuestions(), $this->positioned($this->quizQuestions()));
         $this->syncByPosition($lesson->challenges(), $this->positioned($this->challenges()));
+
+        foreach (self::LATER_LESSONS as $index => $name) {
+            $this->seedLesson($course, $name, $index + 2);
+        }
+    }
+
+    private function seedLesson(Course $course, string $name, int $position): void
+    {
+        $definition = require database_path("content/php-oop/{$name}.php");
+
+        $lesson = $course->lessons()->updateOrCreate(['slug' => $definition['slug']], [
+            'title' => $definition['title'],
+            'summary' => $definition['summary'],
+            'content' => file_get_contents(database_path("content/php-oop/{$name}.md")),
+            'dataset' => null,
+            'starter_code' => $definition['starter_code'],
+            'position' => $position,
+        ]);
+
+        $this->syncByPosition($lesson->quizQuestions(), $this->positioned($definition['quiz']));
+        $this->syncByPosition($lesson->challenges(), $this->positioned($definition['challenges']));
     }
 
     /**
