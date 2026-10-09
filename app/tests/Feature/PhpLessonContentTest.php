@@ -23,6 +23,7 @@ class PhpLessonContentTest extends TestCase
     private const LESSONS = [
         'classes-and-objects',
         'inheritance',
+        'interfaces-and-abstract-classes',
     ];
 
     /**

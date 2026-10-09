@@ -16,6 +16,7 @@ class PhpOopCourseSeeder extends Seeder
      */
     private const LATER_LESSONS = [
         '02-inheritance',
+        '03-interfaces-and-abstract-classes',
     ];
 
     public function run(): void
