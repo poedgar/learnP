@@ -102,15 +102,15 @@ class Book
     }
 }
 
-class EBook extends Book
+class SignedBook extends Book
 {
     public function describe(): string
     {
-        return parent::describe() . ' (e-book)';
+        return parent::describe() . ', signed by the author';
     }
 }
 
-echo (new EBook('Circe', 'Madeline Miller'))->describe();
+echo (new SignedBook('Circe', 'Madeline Miller'))->describe();
 ```
 
 The same goes for constructors. If a child declares its own constructor, the parent's one

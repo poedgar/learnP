@@ -21,15 +21,16 @@ return [
             }
         }
 
-        class EBook extends Book
+        class AudioBook extends Book
         {
-            public function describe(): string
+            public function __construct(string $title, string $author, public string $narrator)
             {
-                return parent::describe() . ' (e-book)';
+                parent::__construct($title, $author);
             }
         }
 
-        echo (new EBook('Dune', 'Frank Herbert'))->describe();
+        $book = new AudioBook('Dune', 'Frank Herbert', 'Scott Brick');
+        echo $book->describe() . ', narrated by ' . $book->narrator;
         PHP,
 
     'quiz' => [
@@ -327,13 +328,14 @@ return [
                 ['label' => 'AudioBook extends Book', 'code' => "return is_subclass_of('AudioBook', 'Book') ?: 'AudioBook should extend Book.';"],
                 ['label' => 'The constructor sets the title, author and narrator', 'code' => <<<'PHP'
                     $book = new AudioBook('Dune', 'Frank Herbert', 'Scott Brick');
-                    return expect_same([$book->title, $book->author, $book->narrator], ['Dune', 'Frank Herbert', 'Scott Brick']);
+                    return expect_same($book->title . ' / ' . $book->author . ' / ' . $book->narrator, 'Dune / Frank Herbert / Scott Brick');
                     PHP],
                 ['label' => "describe() gives 'Dune by Frank Herbert, read by Scott Brick'", 'code' => "return expect_same((new AudioBook('Dune', 'Frank Herbert', 'Scott Brick'))->describe(), 'Dune by Frank Herbert, read by Scott Brick');"],
                 ['label' => 'Each audiobook keeps its own narrator', 'code' => <<<'PHP'
                     $a = new AudioBook('Dune', 'Frank Herbert', 'Scott Brick');
                     $b = new AudioBook('Circe', 'Madeline Miller', 'Perdita Weeks');
-                    return expect_same($b->describe(), 'Circe by Madeline Miller, read by Perdita Weeks');
+                    $second = expect_same($b->describe(), 'Circe by Madeline Miller, read by Perdita Weeks');
+                    return $second === true ? expect_same($a->describe(), 'Dune by Frank Herbert, read by Scott Brick') : $second;
                     PHP],
             ],
         ],

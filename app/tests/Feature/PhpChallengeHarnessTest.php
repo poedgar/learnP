@@ -97,6 +97,53 @@ class PhpChallengeHarnessTest extends TestCase
         }
     }
 
+    public function test_list_checks_name_the_item_that_differs(): void
+    {
+        $challenge = Challenge::where('title', 'Where is it shelved?')->firstOrFail();
+        $report = $this->runHarness(<<<'PHP'
+            <?php
+            enum Shelf { case Front; case Window; case Back; case Stockroom; }
+            class Book { public function __construct(public string $title, public Shelf $shelf) {} }
+            PHP, $challenge->checks);
+
+        $this->assertStringContainsString('Stockroom', implode(' ', array_filter(array_column($report['checks'], 'message'))));
+    }
+
+    public function test_a_narrator_shared_by_every_audiobook_fails(): void
+    {
+        $challenge = Challenge::where('title', 'Read by a narrator')->firstOrFail();
+        $report = $this->runHarness(<<<'PHP'
+            <?php
+            class Book
+            {
+                public function __construct(public string $title, public string $author) {}
+
+                public function describe(): string
+                {
+                    return $this->title . ' by ' . $this->author;
+                }
+            }
+
+            class AudioBook extends Book
+            {
+                private static string $lastNarrator = '';
+
+                public function __construct(string $title, string $author, public string $narrator)
+                {
+                    parent::__construct($title, $author);
+                    self::$lastNarrator = $narrator;
+                }
+
+                public function describe(): string
+                {
+                    return parent::describe() . ', read by ' . self::$lastNarrator;
+                }
+            }
+            PHP, $challenge->checks);
+
+        $this->assertContains(false, array_column($report['checks'], 'passed'));
+    }
+
     public function test_failed_checks_explain_what_was_expected(): void
     {
         $report = $this->runHarness(

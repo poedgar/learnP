@@ -192,24 +192,24 @@ return [
             ],
         ],
         [
-            'title' => 'Counting books',
-            'prompt' => 'Make `Book` count how many books have been created: a **private static** `int` property that the constructor adds 1 to, and a **static** method `created(): int` that returns it.',
+            'title' => 'Counting customers',
+            'prompt' => 'Make `Customer` count how many customers have been created: a **private static** `int` property that the constructor adds 1 to, and a **static** method `created(): int` that returns it.',
             'starter_code' => <<<'PHP'
                 <?php
 
-                class Book
+                class Customer
                 {
-                    public function __construct(public string $title) {}
+                    public function __construct(public string $name) {}
                 }
                 PHP,
             'solution' => <<<'PHP'
                 <?php
 
-                class Book
+                class Customer
                 {
                     private static int $created = 0;
 
-                    public function __construct(public string $title)
+                    public function __construct(public string $name)
                     {
                         self::$created++;
                     }
@@ -223,18 +223,18 @@ return [
             'hint' => 'Declare `private static int $created = 0;`, add `self::$created++;` to the constructor, and return `self::$created` from a `public static function created(): int`.',
             'checks' => [
                 ['label' => 'created() is a static method', 'code' => <<<'PHP'
-                    if (! method_exists('Book', 'created')) return 'Book has no created() method.';
-                    return (new ReflectionMethod('Book', 'created'))->isStatic() ?: 'created() should be static.';
+                    if (! method_exists('Customer', 'created')) return 'Customer has no created() method.';
+                    return (new ReflectionMethod('Customer', 'created'))->isStatic() ?: 'created() should be static.';
                     PHP],
-                ['label' => 'Creating three books adds 3', 'code' => <<<'PHP'
-                    $before = Book::created();
-                    new Book('Dune');
-                    new Book('Circe');
-                    new Book('Beloved');
-                    return expect_same(Book::created() - $before, 3);
+                ['label' => 'Creating three customers adds 3', 'code' => <<<'PHP'
+                    $before = Customer::created();
+                    new Customer('Amara Okafor');
+                    new Customer('Ben Hartley');
+                    new Customer('Siobhan O\'Brien');
+                    return expect_same(Customer::created() - $before, 3);
                     PHP],
                 ['label' => 'The count is kept in a private static property', 'code' => <<<'PHP'
-                    foreach ((new ReflectionClass('Book'))->getProperties(ReflectionProperty::IS_STATIC) as $p) {
+                    foreach ((new ReflectionClass('Customer'))->getProperties(ReflectionProperty::IS_STATIC) as $p) {
                         if ($p->isPrivate()) return true;
                     }
                     return 'Keep the count in a private static property.';
@@ -274,49 +274,49 @@ return [
                 ['label' => 'It builds a Book with the title and author', 'code' => <<<'PHP'
                     $book = Book::fromArray(['title' => 'Dune', 'author' => 'Frank Herbert']);
                     if (! $book instanceof Book) return 'fromArray() should return a Book.';
-                    return expect_same([$book->title, $book->author], ['Dune', 'Frank Herbert']);
+                    return expect_same($book->title . ' / ' . $book->author, 'Dune / Frank Herbert');
                     PHP],
                 ['label' => 'The order of the keys doesn\'t matter', 'code' => <<<'PHP'
                     $book = Book::fromArray(['author' => 'Toni Morrison', 'title' => 'Beloved']);
-                    return expect_same([$book->title, $book->author], ['Beloved', 'Toni Morrison']);
+                    return expect_same($book->title . ' / ' . $book->author, 'Beloved / Toni Morrison');
                     PHP],
             ],
         ],
         [
-            'title' => 'Genres',
-            'prompt' => 'Declare an enum `Genre` with the cases `Fantasy`, `Horror`, `Romance` and `ScienceFiction`, in that order. Then change `Book` so its `$genre` is a `Genre` instead of a string.',
+            'title' => 'Where is it shelved?',
+            'prompt' => 'Declare an enum `Shelf` with the cases `Front`, `Window`, `Back` and `Storeroom`, in that order. Then change `Book` so its `$shelf` is a `Shelf` instead of a string.',
             'starter_code' => <<<'PHP'
                 <?php
 
                 class Book
                 {
-                    public function __construct(public string $title, public string $genre) {}
+                    public function __construct(public string $title, public string $shelf) {}
                 }
                 PHP,
             'solution' => <<<'PHP'
                 <?php
 
-                enum Genre
+                enum Shelf
                 {
-                    case Fantasy;
-                    case Horror;
-                    case Romance;
-                    case ScienceFiction;
+                    case Front;
+                    case Window;
+                    case Back;
+                    case Storeroom;
                 }
 
                 class Book
                 {
-                    public function __construct(public string $title, public Genre $genre) {}
+                    public function __construct(public string $title, public Shelf $shelf) {}
                 }
                 PHP,
-            'hint' => 'Declare `enum Genre { case Fantasy; … }`, and change the constructor\'s `string $genre` to `Genre $genre`.',
+            'hint' => 'Declare `enum Shelf { case Front; … }`, and change the constructor\'s `string $shelf` to `Shelf $shelf`.',
             'checks' => [
-                ['label' => 'An enum named Genre exists', 'code' => "return enum_exists('Genre', false) ?: 'There is no enum named Genre.';"],
-                ['label' => 'Genre has Fantasy, Horror, Romance and ScienceFiction', 'code' => "return expect_same(array_map(fn (\$case) => \$case->name, Genre::cases()), ['Fantasy', 'Horror', 'Romance', 'ScienceFiction']);"],
-                ['label' => 'A book\'s genre is a Genre', 'code' => <<<'PHP'
-                    $type = (string) (new ReflectionProperty('Book', 'genre'))->getType();
-                    if ($type !== 'Genre') return '$genre should be typed Genre.';
-                    return expect_same((new Book('Dune', Genre::ScienceFiction))->genre, Genre::ScienceFiction);
+                ['label' => 'An enum named Shelf exists', 'code' => "return enum_exists('Shelf', false) ?: 'There is no enum named Shelf.';"],
+                ['label' => 'Shelf has Front, Window, Back and Storeroom', 'code' => "return expect_same(implode(', ', array_map(fn (\$case) => \$case->name, Shelf::cases())), 'Front, Window, Back, Storeroom');"],
+                ['label' => 'A book\'s shelf is a Shelf', 'code' => <<<'PHP'
+                    $type = (string) (new ReflectionProperty('Book', 'shelf'))->getType();
+                    if ($type !== 'Shelf') return '$shelf should be typed Shelf.';
+                    return expect_same((new Book('Dune', Shelf::Window))->shelf, Shelf::Window);
                     PHP],
             ],
         ],
@@ -358,9 +358,9 @@ return [
                     if (! enum_exists('OrderStatus', false)) return 'There is no enum named OrderStatus.';
                     return expect_same((string) (new ReflectionEnum('OrderStatus'))->getBackingType(), 'string');
                     PHP],
-                ['label' => 'The values are pending, shipped and delivered', 'code' => "return expect_same(array_map(fn (\$case) => \$case->value, OrderStatus::cases()), ['pending', 'shipped', 'delivered']);"],
+                ['label' => 'The values are pending, shipped and delivered', 'code' => "return expect_same(implode(', ', array_map(fn (\$case) => \$case->value, OrderStatus::cases())), 'pending, shipped, delivered');"],
                 ['label' => "OrderStatus::from('shipped') is Shipped", 'code' => "return expect_same(OrderStatus::from('shipped'), OrderStatus::Shipped);"],
-                ['label' => 'label() gives the right text for each case', 'code' => "return expect_same(array_map(fn (\$case) => \$case->label(), OrderStatus::cases()), ['Waiting to ship', 'On its way', 'Delivered']);"],
+                ['label' => 'label() gives the right text for each case', 'code' => "return expect_same(implode(', ', array_map(fn (\$case) => \$case->label(), OrderStatus::cases())), 'Waiting to ship, On its way, Delivered');"],
             ],
         ],
         [
@@ -402,7 +402,7 @@ return [
                 ['label' => 'A function shippingCost() exists', 'code' => "return function_exists('shippingCost') ?: 'There is no function called shippingCost().';"],
                 ['label' => 'Standard costs 2.99 under 50', 'code' => 'return expect_same(shippingCost(DeliverySpeed::Standard, 49.99), 2.99);'],
                 ['label' => 'Standard is free from 50', 'code' => 'return expect_same(shippingCost(DeliverySpeed::Standard, 50.0), 0.0);'],
-                ['label' => 'Express and NextDay cost 4.99 and 9.99, whatever the total', 'code' => 'return expect_same([shippingCost(DeliverySpeed::Express, 80.0), shippingCost(DeliverySpeed::NextDay, 10.0)], [4.99, 9.99]);'],
+                ['label' => 'Express and NextDay cost 4.99 and 9.99, whatever the total', 'code' => "return expect_same(shippingCost(DeliverySpeed::Express, 80.0) . ' / ' . shippingCost(DeliverySpeed::NextDay, 10.0), '4.99 / 9.99');"],
             ],
         ],
     ],

@@ -239,11 +239,30 @@ enum Format: string
 $format = Format::from('scroll');
 ```
 
-## Methods on enums, and `match`
+## `match`, and methods on enums
 
-Enums can have methods. Inside one, `$this` is the case, and `match` picks a result for each
-case. A `match` must cover every case it is given; if one is missing, PHP throws an
-`UnhandledMatchError` when it meets it.
+`match` compares a value with each arm, using `===`, and gives the result of the first arm
+that matches. One arm can list several values, and `default` catches anything else:
+
+```php
+function deliveryDays(string $speed): int
+{
+    return match ($speed) {
+        'standard' => 3,
+        'express', 'priority' => 2,
+        'next-day' => 1,
+        default => 5,
+    };
+}
+
+echo deliveryDays('express') . "\n";
+echo deliveryDays('pigeon') . "\n";
+```
+
+Without a `default`, a value that matches no arm throws an `UnhandledMatchError`.
+
+`match` and enums go well together. Enums can have methods; inside one, `$this` is the case,
+and a `match` with an arm for every case picks a result for each:
 
 ```php
 enum Format: string

@@ -110,6 +110,26 @@ class PhpLessonContentTest extends TestCase
         }
     }
 
+    /**
+     * A challenge is no challenge if its solution is already on screen, in the
+     * lesson's starter code or one of its theory examples.
+     */
+    public function test_no_challenge_solution_is_already_shown_in_the_lesson(): void
+    {
+        $normalise = fn (string $code) => preg_replace('/\s+/', ' ', trim(str_replace('<?php', '', $code)));
+
+        foreach ($this->lessons()->where('position', '>', 1) as $lesson) {
+            preg_match_all('/```php\n(.*?)```/s', $lesson->content, $matches);
+            $shown = array_map($normalise, [$lesson->starter_code, ...$matches[1]]);
+
+            foreach ($lesson->challenges as $challenge) {
+                foreach ($shown as $code) {
+                    $this->assertStringNotContainsString($normalise($challenge->solution), $code, "{$lesson->slug}: {$challenge->title}");
+                }
+            }
+        }
+    }
+
     public function test_reseeding_keeps_lesson_one_ids(): void
     {
         $ids = fn () => Lesson::where('slug', 'classes-and-objects')->firstOrFail()->load('quizQuestions', 'challenges');
