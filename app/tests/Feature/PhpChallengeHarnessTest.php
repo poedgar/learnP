@@ -144,6 +144,14 @@ class PhpChallengeHarnessTest extends TestCase
         $this->assertContains(false, array_column($report['checks'], 'passed'));
     }
 
+    public function test_traits_can_be_listed_in_either_order(): void
+    {
+        $challenge = Challenge::where('title', 'Settle the conflict')->firstOrFail();
+        $report = $this->runHarness(str_replace('use CatalogueEntry, ShelfLabel {', 'use ShelfLabel, CatalogueEntry {', $challenge->solution), $challenge->checks);
+
+        $this->assertNotContains(false, array_column($report['checks'], 'passed'), json_encode($report['checks']));
+    }
+
     public function test_failed_checks_explain_what_was_expected(): void
     {
         $report = $this->runHarness(
