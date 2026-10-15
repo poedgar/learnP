@@ -1,8 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { api } from '../../api';
 import { lessonProgress } from '../../progress';
-import { checkChallenge, runScript } from '../../lib/php/sandbox';
+import { engineFor } from '../../lib/engines';
 import MarkdownContent from '../MarkdownContent.vue';
 import EditorPanel from '../EditorPanel.vue';
 import RunResults from '../RunResults.vue';
@@ -18,30 +17,7 @@ const props = defineProps({
     schema: { type: Array, default: () => [] },
 });
 
-/**
- * How each language runs and checks answers. SQL runs on the server;
- * PHP runs in the browser (see resources/js/lib/php).
- */
-const engines = {
-    sql: {
-        run: async (code) => ({ sql: await api.run(props.lesson.id, code) }),
-        check: (challenge, code) => api.check(challenge.id, code),
-    },
-    php: {
-        run: async (code) => ({ php: await runScript(code) }),
-        async check(challenge, code) {
-            const report = await checkChallenge(code, challenge.checks);
-            const passedCount = report.checks.filter((c) => c.passed).length;
-            const message = report.passed
-                ? `Correct! All ${report.checks.length} checks pass.`
-                : !report.loaded
-                  ? 'Your code has an error, so the checks could not run yet.'
-                  : `${passedCount} of ${report.checks.length} checks pass. See what's missing below.`;
-            return { ...report, message };
-        },
-    },
-};
-const engine = computed(() => engines[props.language]);
+const engine = computed(() => engineFor(props.language, props.lesson.id));
 
 const progress = lessonProgress(props.lesson.id);
 const challenges = computed(() => props.lesson.challenges);

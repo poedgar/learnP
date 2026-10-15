@@ -41,4 +41,6 @@ export const api = {
     run: (lessonId, sql) => request('POST', `lessons/${lessonId}/run`, { sql }),
     answer: (questionId, option) => request('POST', `quiz-questions/${questionId}/answer`, { option }),
     check: (challengeId, sql) => request('POST', `challenges/${challengeId}/check`, { sql }),
+    reviewItems: (quizQuestionIds, challengeIds) =>
+        request('POST', 'review-items', { quiz_questions: quizQuestionIds, challenges: challengeIds }),
 };

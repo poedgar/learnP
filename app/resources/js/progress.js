@@ -32,6 +32,9 @@ watch(
     { deep: true },
 );
 
+/** Every lesson's progress, keyed by lesson id (read-only use, such as building the review deck). */
+export const allProgress = state.lessons;
+
 export function lessonProgress(lessonId) {
     if (!state.lessons[lessonId]) {
         state.lessons[lessonId] = { read: false, sandboxCode: null, quiz: {}, challenges: {} };

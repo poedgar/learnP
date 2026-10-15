@@ -1,3 +1,16 @@
+<script setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { allProgress } from './progress';
+import { dueItems, passedItems, reviewCards } from './review';
+
+const now = ref(Date.now());
+let clock;
+onMounted(() => (clock = setInterval(() => (now.value = Date.now()), 60_000)));
+onUnmounted(() => clearInterval(clock));
+
+const dueCount = computed(() => dueItems(passedItems(allProgress), reviewCards, now.value).length);
+</script>
+
 <template>
     <a href="#main" class="skip-link">Skip to content</a>
     <header class="site-header">
@@ -5,6 +18,9 @@
             <RouterLink to="/" class="wordmark">learn<span>P</span></RouterLink>
             <nav aria-label="Main">
                 <RouterLink to="/">Courses</RouterLink>
+                <RouterLink to="/review">
+                    Review<span v-if="dueCount" class="due-count" :aria-label="`, ${dueCount} due`">{{ dueCount }}</span>
+                </RouterLink>
             </nav>
         </div>
     </header>
@@ -72,9 +88,28 @@
     border-radius: var(--radius-sm);
 }
 
+.site-header nav {
+    display: flex;
+    gap: 1.5rem;
+}
+
 .site-header nav a {
     font-weight: 700;
     color: var(--ink-soft);
+}
+
+.due-count {
+    display: inline-block;
+    min-width: 1.4rem;
+    margin-left: 0.4rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: var(--highlight);
+    color: var(--ink);
+    font-size: 0.8rem;
+    line-height: 1.4rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
 }
 
 .site-header nav a:hover {

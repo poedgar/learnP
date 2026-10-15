@@ -5,6 +5,7 @@ import type {
   PhpCheck,
   PhpRun,
   QuizAnswer,
+  ReviewItemsResponse,
   SqlCheck,
   SqlRun,
 } from './types';
@@ -68,4 +69,6 @@ export const api = {
     request<SqlCheck>('POST', `challenges/${challengeId}/check`, { sql }),
   checkPhp: (challengeId: number, code: string) =>
     request<PhpCheck>('POST', `challenges/${challengeId}/check`, { code }),
+  reviewItems: (quizQuestionIds: number[], challengeIds: number[]) =>
+    request<ReviewItemsResponse>('POST', 'review-items', { quiz_questions: quizQuestionIds, challenges: challengeIds }),
 };

@@ -106,3 +106,18 @@ export interface PhpCheck {
   output: string;
   checks: { label: string; passed: boolean; message: string | null }[];
 }
+
+/** A lesson as the review endpoint describes it: enough to label and open it. */
+export interface ReviewLesson {
+  id: number;
+  slug: string;
+  title: string;
+  position: number;
+  course: { slug: string; title: string; language: Language; position: number };
+}
+
+export interface ReviewItemsResponse {
+  quiz_questions: (QuizQuestion & { lesson_id: number })[];
+  challenges: (Challenge & { lesson_id: number })[];
+  lessons: ReviewLesson[];
+}

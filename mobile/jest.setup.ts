@@ -1,6 +1,7 @@
 import { cleanup } from '@testing-library/react-native';
 import { useKeyBarStore } from './src/editor/keyBarStore';
 import { useProgressStore } from './src/progress/store';
+import { useReviewStore } from './src/review/store';
 
 // The WebView editor can't run under Jest; src/editor/__mocks__ has a TextInput stand-in.
 jest.mock('./src/editor/CodeMirrorView');
@@ -25,7 +26,7 @@ jest.mock('@react-native-async-storage/async-storage', () => {
 
 // Screens use the imperative router and <Stack.Screen options>; tests assert on the calls.
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), setParams: jest.fn(), back: jest.fn() },
+  router: { push: jest.fn(), setParams: jest.fn(), back: jest.fn(), navigate: jest.fn() },
   Stack: { Screen: () => null },
 }));
 
@@ -34,5 +35,6 @@ process.env.EXPO_PUBLIC_API_URL = 'http://api.test';
 afterEach(() => {
   cleanup();
   useProgressStore.setState({ lessons: {} });
+  useReviewStore.setState({ cards: {} });
   useKeyBarStore.setState({ active: null });
 });

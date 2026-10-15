@@ -14,6 +14,7 @@ export default createRouter({
             component: () => import('./pages/LessonPage.vue'),
             props: true,
         },
+        { path: '/review', name: 'review', component: () => import('./pages/ReviewPage.vue') },
         { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage },
     ],
     scrollBehavior(to, from) {

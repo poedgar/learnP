@@ -25,6 +25,7 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" options={{ title: 'learnP' }} />
+          <Stack.Screen name="review" options={{ title: 'Review' }} />
         </Stack>
         <KeyBarHost />
         <StatusBar style="auto" />
