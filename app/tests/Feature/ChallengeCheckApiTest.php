@@ -6,6 +6,7 @@ use App\Models\Challenge;
 use App\Models\Lesson;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Tests\TestCase;
 
 class ChallengeCheckApiTest extends TestCase
@@ -25,6 +26,9 @@ class ChallengeCheckApiTest extends TestCase
 
     public function test_every_seeded_solution_passes_its_own_challenge(): void
     {
+        // There are more challenges than the sandbox's per-minute limit.
+        $this->withoutMiddleware(ThrottleRequests::class);
+
         foreach (Challenge::whereNull('checks')->get() as $challenge) {
             $this->postJson("/api/challenges/{$challenge->id}/check", ['sql' => $challenge->solution])
                 ->assertOk()

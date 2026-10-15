@@ -14,6 +14,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([SqlCourseSeeder::class, PhpOopCourseSeeder::class]);
+        $this->call([SqlCourseSeeder::class, PhpOopCourseSeeder::class, AdvancedSqlCourseSeeder::class]);
     }
 }

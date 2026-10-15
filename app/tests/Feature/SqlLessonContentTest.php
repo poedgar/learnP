@@ -19,40 +19,58 @@ class SqlLessonContentTest extends TestCase
 
     protected $seed = true;
 
-    /** The SQL course's lessons, in order, with the dataset each one runs on. */
-    private const LESSONS = [
-        ['your-first-queries', 'bookstore'],
-        ['finding-the-rows-you-want', 'bookshop'],
-        ['summarising-data', 'bookshop'],
-        ['combining-tables', 'bookshop'],
-        ['queries-inside-queries', 'bookshop'],
-        ['changing-data', 'bookshop'],
-        ['designing-tables', 'bookshop'],
-        ['shaping-values', 'bookshop'],
-        ['naming-steps-with-with', 'bookshop'],
-        ['window-functions', 'bookshop'],
+    /** Each SQL course's lessons, in order, with the dataset each one runs on. */
+    private const COURSES = [
+        'sql' => [
+            ['your-first-queries', 'bookstore'],
+            ['finding-the-rows-you-want', 'bookshop'],
+            ['summarising-data', 'bookshop'],
+            ['combining-tables', 'bookshop'],
+            ['queries-inside-queries', 'bookshop'],
+            ['changing-data', 'bookshop'],
+            ['designing-tables', 'bookshop'],
+            ['shaping-values', 'bookshop'],
+            ['naming-steps-with-with', 'bookshop'],
+            ['window-functions', 'bookshop'],
+        ],
+        'advanced-sql' => [
+            ['stacking-and-pairing', 'bookshop_plus'],
+            ['the-truth-about-null', 'bookshop_plus'],
+            ['trees-and-hierarchies', 'bookshop_plus'],
+            ['everyday-query-patterns', 'bookshop_plus'],
+            ['upsert-and-returning', 'bookshop_plus'],
+            ['working-with-json', 'bookshop_plus'],
+            ['designing-a-schema', 'bookshop_plus'],
+            ['indexes-and-query-plans', 'bookshop_plus'],
+            ['views-triggers-and-generated-columns', 'bookshop_plus'],
+            ['full-text-search', 'bookshop_plus'],
+        ],
     ];
 
     /**
+     * The lessons of one SQL course, or of every SQL course.
+     *
      * @return Collection<int, Lesson>
      */
-    private function lessons(): Collection
+    private function lessons(?string $course = null): Collection
     {
-        return Course::where('slug', 'sql')->firstOrFail()
-            ->lessons()->orderBy('position')
+        return Lesson::whereIn('course_id', Course::whereIn('slug', $course === null ? array_keys(self::COURSES) : [$course])->select('id'))
+            ->orderBy('course_id')->orderBy('position')
             ->withCount(['quizQuestions', 'challenges'])
             ->get();
     }
 
-    public function test_the_course_has_its_lessons_in_order(): void
+    public function test_each_course_has_its_lessons_in_order(): void
     {
-        $lessons = $this->lessons();
+        foreach (self::COURSES as $course => $expected) {
+            $lessons = $this->lessons($course);
 
-        $this->assertSame(self::LESSONS, $lessons->map(fn (Lesson $lesson) => [$lesson->slug, $lesson->dataset])->all());
+            $this->assertSame($expected, $lessons->map(fn (Lesson $lesson) => [$lesson->slug, $lesson->dataset])->all());
 
-        foreach ($lessons as $lesson) {
-            $this->assertSame(8, $lesson->quiz_questions_count, "{$lesson->slug} quiz questions");
-            $this->assertSame(6, $lesson->challenges_count, "{$lesson->slug} challenges");
+            foreach ($lessons as $lesson) {
+                $this->assertSame(8, $lesson->quiz_questions_count, "{$lesson->slug} quiz questions");
+                $this->assertSame(6, $lesson->challenges_count, "{$lesson->slug} challenges");
+            }
         }
     }
 

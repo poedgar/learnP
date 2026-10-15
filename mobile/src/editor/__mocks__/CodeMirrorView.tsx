@@ -4,20 +4,21 @@ import type { EditorHandle } from '../CodeMirrorView';
 
 /** Jest stand-in for the WebView editor: a TextInput with the same props and handle. */
 export default function CodeMirrorView({
-  initialValue,
+  encodedInitialValue,
   resetKey,
   onChange,
   onFocusChange,
   accessibilityLabel,
   ref,
 }: {
-  initialValue: string;
+  encodedInitialValue: string;
   resetKey: number;
   onChange: (value: string) => Promise<void> | void;
   onFocusChange: (focused: boolean) => Promise<void> | void;
   accessibilityLabel?: string;
   ref?: Ref<EditorHandle>;
 }) {
+  const initialValue = decodeURIComponent(encodedInitialValue);
   const [value, setValue] = useState(initialValue);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps

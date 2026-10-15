@@ -20,7 +20,13 @@ export interface EditorHandle {
 }
 
 type Props = {
-  initialValue: string;
+  /**
+   * The starting text, encodeURIComponent'd. On Android, react-native-webview
+   * wraps the initial props JSON in a JS template literal, which turns escapes
+   * like \n and \" back into raw characters and breaks JSON.parse; encoded
+   * text has none.
+   */
+  encodedInitialValue: string;
   resetKey: number;
   language: 'sql' | 'php';
   dark: boolean;
@@ -33,7 +39,7 @@ type Props = {
 };
 
 export default function CodeMirrorView({
-  initialValue,
+  encodedInitialValue,
   resetKey,
   language,
   dark,
@@ -44,6 +50,7 @@ export default function CodeMirrorView({
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
+  const initialValue = decodeURIComponent(encodedInitialValue);
   const latest = useRef(initialValue);
   const appliedReset = useRef<number | null>(null);
   const callbacks = useRef({ onChange, onFocusChange });

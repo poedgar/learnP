@@ -83,6 +83,26 @@ class SandboxApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('error', null)
             ->assertJsonCount(8, 'results.0.rows');
+
+        $this->runSql("CREATE INDEX books_author_year ON books (author, published_year);\nPRAGMA index_info(books_author_year)")
+            ->assertOk()
+            ->assertJsonPath('error', null)
+            ->assertJsonCount(2, 'results.1.rows');
+    }
+
+    public function test_full_text_search_tables_can_be_created_and_searched(): void
+    {
+        $this->runSql("CREATE VIRTUAL TABLE book_search USING fts5(title);\nINSERT INTO book_search SELECT title FROM books;\nSELECT title FROM book_search WHERE book_search MATCH 'ring'")
+            ->assertOk()
+            ->assertJsonPath('error', null)
+            ->assertJsonPath('results.2.rows', [['The Fellowship of the Ring']]);
+    }
+
+    public function test_internal_pragmas_cannot_be_typed(): void
+    {
+        $this->runSql('PRAGMA data_version')
+            ->assertOk()
+            ->assertJsonPath('error.statement', 0);
     }
 
     public function test_large_results_are_truncated(): void

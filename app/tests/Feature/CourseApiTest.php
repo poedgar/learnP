@@ -26,7 +26,10 @@ class CourseApiTest extends TestCase
             ->assertJsonPath('data.0.lessons_count', 10)
             ->assertJsonPath('data.1.slug', 'php-oop')
             ->assertJsonPath('data.1.language', 'php')
-            ->assertJsonPath('data.1.lessons_count', 7);
+            ->assertJsonPath('data.1.lessons_count', 7)
+            ->assertJsonPath('data.2.slug', 'advanced-sql')
+            ->assertJsonPath('data.2.language', 'sql')
+            ->assertJsonPath('data.2.lessons_count', 10);
     }
 
     public function test_course_lists_its_lessons_without_their_content(): void
@@ -92,6 +95,18 @@ class CourseApiTest extends TestCase
             ->assertJsonPath('navigation.previous.slug', 'shaping-values');
         $this->getJson('/api/courses/sql/lessons/window-functions')
             ->assertJsonPath('navigation.previous.slug', 'naming-steps-with-with')
+            ->assertJsonPath('navigation.next', null);
+    }
+
+    public function test_advanced_sql_lessons_link_within_their_course(): void
+    {
+        $this->getJson('/api/courses/advanced-sql/lessons/stacking-and-pairing')
+            ->assertOk()
+            ->assertJsonPath('data.course.slug', 'advanced-sql')
+            ->assertJsonPath('navigation.previous', null)
+            ->assertJsonPath('navigation.next.slug', 'the-truth-about-null');
+        $this->getJson('/api/courses/advanced-sql/lessons/full-text-search')
+            ->assertJsonPath('navigation.previous.slug', 'views-triggers-and-generated-columns')
             ->assertJsonPath('navigation.next', null);
     }
 

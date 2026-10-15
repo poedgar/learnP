@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
-import { useColorScheme, View } from 'react-native';
+import { Platform, useColorScheme, View } from 'react-native';
 import type { Language } from '../api/types';
 import { useTheme } from '../theme';
 import CodeMirrorView, { type EditorHandle } from './CodeMirrorView';
@@ -26,6 +26,9 @@ export function CodeEditor({ value, resetKey, language, onChange, label, height 
   // An editor can unmount while focused (leaving the lesson); don't leave the key bar typing into it.
   useEffect(() => () => useKeyBarStore.getState().blur(id), [id]);
 
+  // The props sent across to the WebView (functions travel by name).
+  const props = { encodedInitialValue: encodeURIComponent(value), resetKey, language, dark, accessibilityLabel: label };
+
   return (
     <View
       accessible={false}
@@ -33,10 +36,7 @@ export function CodeEditor({ value, resetKey, language, onChange, label, height 
     >
       <CodeMirrorView
         ref={handle}
-        initialValue={value}
-        resetKey={resetKey}
-        language={language}
-        dark={dark}
+        {...props}
         onChange={async (next) => onChange(next)}
         onFocusChange={async (focused) => {
           if (focused) {
@@ -46,8 +46,26 @@ export function CodeEditor({ value, resetKey, language, onChange, label, height 
             blur(id);
           }
         }}
-        accessibilityLabel={label}
-        dom={{ style: { flex: 1 } }}
+        dom={{
+          style: { flex: 1 },
+          useExpoDOMWebView: false,
+          // On Android, react-native-webview defines injectedObjectJson racing the page's own
+          // scripts, so Expo's page can end up without the host OS or initial props and crash
+          // ("Top OS ($$EXPO_DOM_HOST_OS) is not defined"). Provide them ourselves, and ignore
+          // the page setting them to undefined. Expo re-sends the live props once the page is ready.
+          injectedJavaScriptBeforeContentLoaded: `
+            [['$$EXPO_DOM_HOST_OS', ${JSON.stringify(Platform.OS)}],
+             ['$$EXPO_INITIAL_PROPS', ${JSON.stringify({ names: ['onChange', 'onFocusChange'], props })}]
+            ].forEach(function (entry) {
+              var current = window[entry[0]] !== undefined ? window[entry[0]] : entry[1];
+              Object.defineProperty(window, entry[0], {
+                configurable: true,
+                get: function () { return current; },
+                set: function (next) { if (next !== undefined) current = next; },
+              });
+            });
+            true;`,
+        }}
       />
     </View>
   );

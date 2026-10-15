@@ -19,7 +19,10 @@ final class SqlExecutor
     private const FORBIDDEN_KEYWORDS = ['ATTACH', 'DETACH', 'VACUUM', 'LOAD_EXTENSION'];
 
     /** Read-only PRAGMAs that help learners inspect a table. */
-    private const ALLOWED_PRAGMAS = ['TABLE_INFO', 'TABLE_XINFO', 'TABLE_LIST', 'INDEX_LIST', 'FOREIGN_KEY_LIST'];
+    private const ALLOWED_PRAGMAS = ['TABLE_INFO', 'TABLE_XINFO', 'TABLE_LIST', 'INDEX_LIST', 'INDEX_INFO', 'INDEX_XINFO', 'FOREIGN_KEY_LIST'];
+
+    /** PRAGMAs SQLite runs internally that learners can't type: FTS5 reads data_version when it writes. */
+    private const INTERNAL_PRAGMAS = ['DATA_VERSION'];
 
     // SQLite authorizer action codes (sqlite3.h).
     private const SQLITE_PRAGMA = 19;
@@ -121,7 +124,7 @@ final class SqlExecutor
             $pdo->setAuthorizer(function (int $action, ?string $arg1, ?string $arg2) {
                 return match (true) {
                     $action === self::SQLITE_ATTACH, $action === self::SQLITE_DETACH => Sqlite::DENY,
-                    $action === self::SQLITE_PRAGMA => in_array(strtoupper((string) $arg1), self::ALLOWED_PRAGMAS, true)
+                    $action === self::SQLITE_PRAGMA => in_array(strtoupper((string) $arg1), [...self::ALLOWED_PRAGMAS, ...self::INTERNAL_PRAGMAS], true)
                         ? Sqlite::OK
                         : Sqlite::DENY,
                     $action === self::SQLITE_FUNCTION => strtolower((string) $arg2) === 'load_extension'

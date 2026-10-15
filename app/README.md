@@ -8,6 +8,7 @@ Courses so far:
 |--------|----------|-----------|
 | **SQL** | *Your first queries* | on the server, in SQLite |
 | **OOP in PHP** | *Classes and objects* | in the browser, in PHP 8.4 compiled to WebAssembly |
+| **Advanced SQL** | *Stacking and pairing* | on the server, in SQLite |
 
 There is also a mobile app for iOS and Android in `../mobile` (Expo). See `../mobile/README.md`.
 
@@ -46,6 +47,8 @@ Then open http://localhost:8000.
    (`App\Sandbox\SqlExecutor`). Learners can `INSERT`, `UPDATE` or `DROP` freely, because nothing persists.
 3. Commands that could touch the file system (`ATTACH`, `VACUUM INTO`, most `PRAGMA`s,
    `load_extension`) are refused. On PHP 8.5+ a SQLite authorizer enforces this inside the engine too.
+   It lets through only the read-only `PRAGMA`s learners may type, plus `data_version`, which FTS5
+   full-text tables read internally when they're written to.
 4. Results are capped at 500 rows per statement.
 
 Challenge checks (`POST /api/challenges/{challenge}/check`) run the learner's SQL and the hidden
