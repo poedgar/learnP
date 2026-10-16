@@ -18,6 +18,8 @@ class ChallengeCheckController extends Controller
      */
     public function __invoke(Challenge $challenge, SqlSandbox $sqlSandbox, PhpSandbox $phpSandbox): JsonResponse
     {
+        abort_if($challenge->lesson->course->runsOnDevice(), 422, 'Code in this course runs on your device, not on the server.');
+
         if ($challenge->lesson->course->language === 'php') {
             return response()->json($phpSandbox->check(app(RunPhpRequest::class)->validated('code'), $challenge->checks));
         }

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api/client';
-import type { Language, Lesson, PhpRun, SchemaTable, SqlRun } from '../../api/types';
+import { runsInFrame, LANGUAGE_NAMES, type JsRun, type Language, type Lesson, type PhpRun, type SchemaTable, type SqlRun } from '../../api/types';
 import { CodeEditor } from '../../editor/CodeEditor';
+import { useJsRunner } from '../../js-runtime/useJsRunner';
 import { withOpeningTag } from '../../lesson/php';
 import { updateLesson, useLessonProgress } from '../../progress/store';
 import { useTheme } from '../../theme';
 import { Button } from '../Button';
+import { JsOutput } from '../results/JsOutput';
 import { PhpOutput } from '../results/PhpOutput';
 import { RunResults } from '../results/RunResults';
 import { SchemaPanel } from '../results/SchemaPanel';
@@ -19,7 +21,7 @@ type Props = {
   request: { code: string; key: number } | null;
 };
 
-type Result = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun };
+type Result = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun } | { kind: 'js'; run: JsRun };
 
 export function SandboxStep({ lesson, language, schema, request }: Props) {
   const theme = useTheme();
@@ -32,6 +34,10 @@ export function SandboxStep({ lesson, language, schema, request }: Props) {
   const [failure, setFailure] = useState('');
   const scroll = useRef<ScrollView>(null);
   const editorY = useRef(0);
+  const javascript = runsInFrame(language);
+  const runner = useJsRunner(javascript ? language : 'javascript', (entry) =>
+    setResult((current) => (current?.kind === 'js' ? { kind: 'js', run: { ...current.run, entries: [...current.run.entries, entry] } } : current)),
+  );
 
   function save(value: string) {
     code.current = value;
@@ -52,7 +58,9 @@ export function SandboxStep({ lesson, language, schema, request }: Props) {
       setResult(
         language === 'sql'
           ? { kind: 'sql', run: await api.runSql(lesson.id, code.current) }
-          : { kind: 'php', run: await api.runPhp(lesson.id, code.current) },
+          : javascript
+            ? { kind: 'js', run: await runner.run(code.current) }
+            : { kind: 'php', run: await api.runPhp(lesson.id, code.current) },
       );
     } catch (e) {
       setResult(null);
@@ -77,7 +85,13 @@ export function SandboxStep({ lesson, language, schema, request }: Props) {
       <Text style={[styles.intro, { color: theme.muted }]}>
         {language === 'sql'
           ? "Write any SQL you like: SELECT, INSERT, UPDATE, even DROP TABLE. Every run starts from a fresh copy of the data, so you can't break anything."
-          : 'Write any PHP you like and press Run. It runs in a sandbox on the server. Use echo to print values.'}
+          : language === 'html'
+            ? 'Write HTML, with CSS in a <style> element, and press Run to see the page. It runs on this device, in a sandbox.'
+            : javascript
+            ? `Write any ${LANGUAGE_NAMES[language]} you like and press Run. It runs on this device, in a sandbox. Use console.log() to print values.${
+                language === 'typescript' ? " TypeScript checks your types first; code with type errors doesn't run." : ''
+              }`
+            : 'Write any PHP you like and press Run. It runs in a sandbox on the server. Use echo to print values.'}
       </Text>
       {language === 'sql' ? (
         <SchemaPanel
@@ -94,7 +108,7 @@ export function SandboxStep({ lesson, language, schema, request }: Props) {
           resetKey={editor.key}
           language={language}
           onChange={save}
-          label={language === 'sql' ? 'Sandbox SQL editor' : 'Sandbox PHP editor'}
+          label={`Sandbox ${LANGUAGE_NAMES[language]} editor`}
           onFocus={() => scroll.current?.scrollTo({ y: Math.max(editorY.current - 8, 0), animated: true })}
         />
       </View>
@@ -106,6 +120,7 @@ export function SandboxStep({ lesson, language, schema, request }: Props) {
             load(lesson.starter_code ?? '');
             setResult(null);
             setFailure('');
+            runner.hidePage();
           }}
         />
       </View>
@@ -116,6 +131,8 @@ export function SandboxStep({ lesson, language, schema, request }: Props) {
       ) : null}
       {result?.kind === 'sql' ? <RunResults run={result.run} /> : null}
       {result?.kind === 'php' ? <PhpOutput {...result.run} /> : null}
+      {result?.kind === 'js' ? <JsOutput {...result.run} quiet={language === 'html'} /> : null}
+      {javascript ? runner.view : null}
       {!result && !failure ? (
         <Text style={[styles.intro, { color: theme.muted }]}>
           {language === 'sql' ? 'Press Run to see the result of your query here.' : 'Press Run to see what your code prints.'}

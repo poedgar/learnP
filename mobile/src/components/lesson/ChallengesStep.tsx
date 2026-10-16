@@ -1,22 +1,27 @@
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api/client';
-import type { Challenge, Language, Lesson, PhpCheck, PhpRun, SqlCheck, SqlRun } from '../../api/types';
+import { runsInFrame, type Challenge, type JsCheck, type JsRun, type Language, type Lesson, type PhpCheck, type PhpRun, type SqlCheck, type SqlRun } from '../../api/types';
 import { CodeEditor } from '../../editor/CodeEditor';
+import { useJsRunner } from '../../js-runtime/useJsRunner';
 import { phpCheckMessage } from '../../lesson/php';
 import { updateLesson, useLessonProgress, useProgressStore } from '../../progress/store';
 import { useTheme } from '../../theme';
 import { Button } from '../Button';
 import { Markdown } from '../markdown/Markdown';
 import { PhpCheckDetails } from '../results/PhpCheckDetails';
+import { JsOutput } from '../results/JsOutput';
 import { PhpOutput } from '../results/PhpOutput';
 import { RunResults } from '../results/RunResults';
 import { SqlCheckDetails } from '../results/SqlCheckDetails';
 
 type Props = { lesson: Lesson; language: Language };
 
-type RunView = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun };
-type CheckView = { kind: 'sql'; check: SqlCheck; message: string } | { kind: 'php'; check: PhpCheck; message: string };
+type RunView = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun } | { kind: 'js'; run: JsRun };
+type CheckView =
+  | { kind: 'sql'; check: SqlCheck; message: string }
+  | { kind: 'php'; check: PhpCheck; message: string }
+  | { kind: 'js'; check: JsCheck; message: string };
 
 function savedCode(lessonId: number, challenge: Challenge): string {
   return useProgressStore.getState().lessons[lessonId]?.challenges[challenge.id]?.code ?? challenge.starter_code ?? '';
@@ -45,6 +50,10 @@ export function ChallengesStep({ lesson, language }: Props) {
   const scroll = useRef<ScrollView>(null);
   const editorY = useRef(0);
   const shownId = useRef<number | null>(null);
+  const javascript = runsInFrame(language);
+  const runner = useJsRunner(javascript ? language : 'javascript', (entry) =>
+    setRun((current) => (current?.kind === 'js' ? { kind: 'js', run: { ...current.run, entries: [...current.run.entries, entry] } } : current)),
+  );
 
   if (challenges.length === 0) {
     return (
@@ -82,6 +91,7 @@ export function ChallengesStep({ lesson, language }: Props) {
     setCheck(null);
     setFailure('');
     setShowHint(false);
+    runner.hidePage();
   }
 
   /** Marks a challenge solved. Its code is already saved on every edit, so only fill it in if it never was. */
@@ -110,8 +120,14 @@ export function ChallengesStep({ lesson, language }: Props) {
         const view: RunView =
           language === 'sql'
             ? { kind: 'sql', run: await api.runSql(lesson.id, submitted) }
-            : { kind: 'php', run: await api.runPhp(lesson.id, submitted) };
+            : javascript
+              ? { kind: 'js', run: await runner.run(submitted) }
+              : { kind: 'php', run: await api.runPhp(lesson.id, submitted) };
         if (stillShown()) setRun(view);
+      } else if (javascript) {
+        const result = await runner.check(submitted, challenge.checks ?? []);
+        if (result.passed) markSolved(challenge, submitted);
+        if (stillShown()) setCheck({ kind: 'js', check: result, message: phpCheckMessage(result) });
       } else if (language === 'sql') {
         const result = await api.checkSql(challenge.id, submitted);
         if (result.passed) markSolved(challenge, submitted);
@@ -196,6 +212,7 @@ export function ChallengesStep({ lesson, language }: Props) {
             load(active.starter_code ?? '');
             setRun(null);
             setCheck(null);
+            runner.hidePage();
           }}
         />
       </View>
@@ -231,6 +248,8 @@ export function ChallengesStep({ lesson, language }: Props) {
 
       {run?.kind === 'sql' ? <RunResults run={run.run} /> : null}
       {run?.kind === 'php' ? <PhpOutput {...run.run} /> : null}
+      {run?.kind === 'js' ? <JsOutput {...run.run} quiet={language === 'html'} /> : null}
+      {javascript ? runner.view : null}
     </ScrollView>
   );
 }

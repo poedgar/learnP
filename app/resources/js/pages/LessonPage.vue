@@ -6,6 +6,8 @@ import { lessonProgress, lessonSummary } from '../progress';
 import TheoryStep from '../components/lesson/TheoryStep.vue';
 import SqlSandboxStep from '../components/lesson/SqlSandboxStep.vue';
 import PhpSandboxStep from '../components/lesson/PhpSandboxStep.vue';
+import JsSandboxStep from '../components/lesson/JsSandboxStep.vue';
+import { runsInFrame } from '../lib/engines';
 import QuizStep from '../components/lesson/QuizStep.vue';
 import ChallengesStep from '../components/lesson/ChallengesStep.vue';
 import LoadState from '../components/LoadState.vue';
@@ -111,6 +113,13 @@ function finishReading() {
                         v-show="current === 'sandbox'"
                         :lesson="data.data"
                         :schema="data.schema"
+                        :request="sandboxRequest"
+                    />
+                    <JsSandboxStep
+                        v-else-if="runsInFrame(language)"
+                        v-show="current === 'sandbox'"
+                        :lesson="data.data"
+                        :language="language"
                         :request="sandboxRequest"
                     />
                     <PhpSandboxStep

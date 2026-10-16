@@ -6,12 +6,14 @@ import { keymap } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 import { sql, SQLite } from '@codemirror/lang-sql';
 import { php } from '@codemirror/lang-php';
+import { javascript } from '@codemirror/lang-javascript';
+import { html } from '@codemirror/lang-html';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 
 const props = defineProps({
     modelValue: { type: String, default: '' },
-    language: { type: String, default: 'sql', validator: (value) => ['sql', 'php'].includes(value) },
+    language: { type: String, default: 'sql', validator: (value) => ['sql', 'php', 'javascript', 'typescript', 'html'].includes(value) },
     /** SQL only: tables from the lesson dataset, used for autocompletion. */
     schema: { type: Array, default: () => [] },
     label: { type: String, default: 'Code editor' },
@@ -60,6 +62,12 @@ const theme = EditorView.theme(
 function languageFor(schema) {
     if (props.language === 'php') {
         return php({ baseLanguage: null });
+    }
+    if (props.language === 'html') {
+        return html();
+    }
+    if (props.language === 'javascript' || props.language === 'typescript') {
+        return javascript({ typescript: props.language === 'typescript' });
     }
     return sql({
         dialect: SQLite,

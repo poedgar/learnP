@@ -1,5 +1,7 @@
 'use dom';
 
+import { html } from '@codemirror/lang-html';
+import { javascript } from '@codemirror/lang-javascript';
 import { php } from '@codemirror/lang-php';
 import { sql } from '@codemirror/lang-sql';
 import { EditorState } from '@codemirror/state';
@@ -28,7 +30,7 @@ type Props = {
    */
   encodedInitialValue: string;
   resetKey: number;
-  language: 'sql' | 'php';
+  language: 'sql' | 'php' | 'javascript' | 'typescript' | 'html';
   dark: boolean;
   onChange: (value: string) => Promise<void>;
   onFocusChange: (focused: boolean) => Promise<void>;
@@ -72,7 +74,13 @@ export default function CodeMirrorView({
         extensions: [
           basicSetup,
           EditorView.lineWrapping,
-          language === 'php' ? php() : sql(),
+          language === 'php'
+            ? php()
+            : language === 'html'
+              ? html()
+            : language === 'javascript' || language === 'typescript'
+              ? javascript({ typescript: language === 'typescript' })
+              : sql(),
           dark ? oneDark : [],
           EditorView.theme({
             '&': { height: '100vh', fontSize: '15px' },

@@ -6,6 +6,7 @@ import { LoadState } from '../components/LoadState';
 import { plural } from '../lib/text';
 import { useReviewDeck } from '../review/deck';
 import { useTheme } from '../theme';
+import { LANGUAGE_NAMES } from '../api/types';
 
 export function HomeScreen() {
   const theme = useTheme();
@@ -54,7 +55,7 @@ export function HomeScreen() {
             >
               <Text style={[styles.cardTitle, { color: theme.ink }]}>{course.title}</Text>
               <Text style={[styles.meta, { color: theme.muted }]}>
-                {plural(course.lessons_count ?? 0, 'lesson')} · {course.language === 'sql' ? 'SQL' : 'PHP'}
+                {plural(course.lessons_count ?? 0, 'lesson')} · {LANGUAGE_NAMES[course.language]}
               </Text>
               <Text style={[styles.description, { color: theme.ink }]}>{course.description}</Text>
             </Pressable>

@@ -5,7 +5,7 @@ export function withOpeningTag(code: string): string {
   return code.trimStart().startsWith('<?php') ? code : `<?php\n\n${code}`;
 }
 
-/** The verdict line for a PHP challenge, worded as in the web app's ChallengesStep. */
+/** The verdict line for a PHP or JavaScript challenge, worded as in the web app's engines.js. */
 export function phpCheckMessage(check: PhpCheck): string {
   const passedCount = check.checks.filter((c) => c.passed).length;
 

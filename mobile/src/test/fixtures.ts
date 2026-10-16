@@ -97,3 +97,39 @@ export const phpLesson: LessonResponse = {
   schema: [],
   navigation: { previous: null, next: null },
 };
+
+export const jsCourse: CourseSummary = {
+  id: 3,
+  slug: 'js-basics',
+  title: 'JavaScript basics',
+  description: 'Values, functions and more.',
+  language: 'javascript',
+  lessons_count: 1,
+};
+
+export const jsLesson: LessonResponse = {
+  data: {
+    id: 3,
+    slug: 'functions',
+    title: 'Functions',
+    summary: 'Name a piece of work.',
+    position: 1,
+    content: '## Functions\n\n```javascript\nconsole.log(1 + 1);\n```\n',
+    starter_code: "console.log('start');",
+    course: jsCourse,
+    quiz_questions: [],
+    challenges: [
+      {
+        id: 51,
+        title: 'Add two numbers',
+        prompt: 'Write `add(a, b)`.',
+        starter_code: 'function add(a, b) {}',
+        hint: null,
+        order_matters: false,
+        checks: [{ label: 'Adds', code: 'return expectSame(add(1, 2), 3);' }],
+      },
+    ],
+  },
+  schema: [],
+  navigation: { previous: null, next: null },
+};

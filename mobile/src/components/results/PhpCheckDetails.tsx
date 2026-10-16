@@ -1,9 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
-import type { PhpCheck } from '../../api/types';
+import type { JsCheck, PhpCheck } from '../../api/types';
 import { useTheme } from '../../theme';
+import { JsOutput } from './JsOutput';
 import { PhpOutput } from './PhpOutput';
 
-export function PhpCheckDetails({ check }: { check: PhpCheck }) {
+/** Check reports from sandboxes that run checks themselves: PHP, and JavaScript (which adds console entries). */
+export function PhpCheckDetails({ check }: { check: PhpCheck | JsCheck }) {
+  const entries = 'entries' in check ? check.entries : null;
   const theme = useTheme();
 
   return (
@@ -29,10 +32,10 @@ export function PhpCheckDetails({ check }: { check: PhpCheck }) {
           </View>
         );
       })}
-      {check.output.trim() ? (
+      {(entries ? entries.length > 0 : check.output.trim()) ? (
         <View style={styles.output}>
           <Text style={[styles.heading, { color: theme.ink }]}>What your code printed</Text>
-          <PhpOutput output={check.output} fatal={!check.loaded} />
+          {entries ? <JsOutput entries={entries} /> : <PhpOutput output={check.output} fatal={!check.loaded} />}
         </View>
       ) : null}
     </View>

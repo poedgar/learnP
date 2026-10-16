@@ -1,10 +1,18 @@
 <script setup>
+import { computed } from 'vue';
 import PhpOutput from '../PhpOutput.vue';
+import JsOutput from '../JsOutput.vue';
+import { runsInFrame } from '../../lib/engines';
 
-defineProps({
-    /** Report from checkChallenge() in resources/js/lib/php/sandbox.js. */
+/** Check reports from sandboxes that run the checks themselves: PHP, JavaScript, TypeScript and HTML. */
+const props = defineProps({
+    /** Report from checkChallenge() in lib/php/sandbox.js, or checkCode() in lib/js/sandbox.js. */
     check: { type: Object, required: true },
+    language: { type: String, default: 'php' },
 });
+
+const javascript = computed(() => runsInFrame(props.language));
+const printed = computed(() => (javascript.value ? (props.check.entries ?? []).length > 0 : props.check.output.trim() !== ''));
 </script>
 
 <template>
@@ -22,9 +30,10 @@ defineProps({
             </li>
         </ul>
 
-        <div v-if="check.output.trim()">
+        <div v-if="printed">
             <h4>What your code printed</h4>
-            <PhpOutput :output="check.output" :fatal="!check.loaded" />
+            <JsOutput v-if="javascript" :entries="check.entries" />
+            <PhpOutput v-else :output="check.output" :fatal="!check.loaded" />
         </div>
     </div>
 </template>

@@ -1,8 +1,9 @@
 import { useEffect, useId, useRef } from 'react';
-import { Platform, useColorScheme, View } from 'react-native';
+import { useColorScheme, View } from 'react-native';
 import type { Language } from '../api/types';
 import { useTheme } from '../theme';
 import CodeMirrorView, { type EditorHandle } from './CodeMirrorView';
+import { domProps } from './domProps';
 import { useKeyBarStore } from './keyBarStore';
 
 type Props = {
@@ -46,26 +47,7 @@ export function CodeEditor({ value, resetKey, language, onChange, label, height 
             blur(id);
           }
         }}
-        dom={{
-          style: { flex: 1 },
-          useExpoDOMWebView: false,
-          // On Android, react-native-webview defines injectedObjectJson racing the page's own
-          // scripts, so Expo's page can end up without the host OS or initial props and crash
-          // ("Top OS ($$EXPO_DOM_HOST_OS) is not defined"). Provide them ourselves, and ignore
-          // the page setting them to undefined. Expo re-sends the live props once the page is ready.
-          injectedJavaScriptBeforeContentLoaded: `
-            [['$$EXPO_DOM_HOST_OS', ${JSON.stringify(Platform.OS)}],
-             ['$$EXPO_INITIAL_PROPS', ${JSON.stringify({ names: ['onChange', 'onFocusChange'], props })}]
-            ].forEach(function (entry) {
-              var current = window[entry[0]] !== undefined ? window[entry[0]] : entry[1];
-              Object.defineProperty(window, entry[0], {
-                configurable: true,
-                get: function () { return current; },
-                set: function (next) { if (next !== undefined) current = next; },
-              });
-            });
-            true;`,
-        }}
+        dom={domProps(['onChange', 'onFocusChange'], props)}
       />
     </View>
   );

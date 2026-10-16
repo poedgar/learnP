@@ -19,39 +19,114 @@ class PhpLessonContentTest extends TestCase
 
     protected $seed = true;
 
-    /** The PHP course's lessons, in order. */
-    private const LESSONS = [
-        'classes-and-objects',
-        'inheritance',
-        'interfaces-and-abstract-classes',
-        'static-members-constants-and-enums',
-        'exceptions',
-        'traits-and-readonly-properties',
-        'putting-objects-together',
+    /** Each PHP course's lessons, in order. */
+    private const COURSES = [
+        'php-basics' => [
+            'values-and-variables',
+            'strings-and-formatting',
+            'comparisons-and-type-juggling',
+            'control-flow',
+            'arrays',
+            'array-functions',
+            'functions',
+            'dates',
+            'types-and-null-safety',
+            'regular-expressions',
+            'handling-errors',
+        ],
+        'php-oop' => [
+            'classes-and-objects',
+            'inheritance',
+            'interfaces-and-abstract-classes',
+            'static-members-constants-and-enums',
+            'exceptions',
+            'traits-and-readonly-properties',
+            'putting-objects-together',
+        ],
+        'php-oop-advanced' => [
+            'magic-methods',
+            'object-identity',
+            'closures-and-callables',
+            'late-static-binding-and-fluent-interfaces',
+            'iterators-and-generators',
+            'objects-that-act-like-arrays',
+            'property-hooks-and-asymmetric-visibility',
+            'attributes-and-reflection',
+            'namespaces-and-autoloading',
+            'solid-and-a-tiny-container',
+        ],
+        'php-design-patterns' => [
+            'patterns-and-factories',
+            'builder-and-singleton',
+            'adapter-and-facade',
+            'decorator-and-proxy',
+            'composite',
+            'strategy-and-template-method',
+            'observer-and-command',
+            'state-and-chain-of-responsibility',
+            'visitor-and-choosing-patterns',
+        ],
+        'php-algorithms' => [
+            'big-o-and-searching',
+            'sorting',
+            'recursion',
+            'stacks-and-queues',
+            'linked-lists',
+            'hash-maps-and-sets',
+            'trees-and-heaps',
+            'graphs',
+            'dynamic-programming-and-techniques',
+        ],
+        'functional-php' => [
+            'pure-functions',
+            'higher-order-functions',
+            'currying-and-partial-application',
+            'pipelines-and-lazy-collections',
+        ],
+        'php-testing' => [
+            'writing-assertions',
+            'a-tiny-test-runner',
+            'writing-good-tests',
+            'test-doubles',
+            'test-driven-development',
+        ],
+        'php-clean-code' => [
+            'names-and-functions',
+            'smells-and-refactoring',
+            'simplifying-conditionals',
+            'better-data',
+            'working-with-legacy-code',
+        ],
     ];
 
     /**
+     * The lessons of one PHP course, or of every PHP course.
+     *
      * @return Collection<int, Lesson>
      */
-    private function lessons(): Collection
+    private function lessons(?string $course = null): Collection
     {
-        return Course::where('slug', 'php-oop')->firstOrFail()
-            ->lessons()->orderBy('position')
+        return Lesson::whereIn('course_id', Course::whereIn('slug', $course === null ? array_keys(self::COURSES) : [$course])->select('id'))
+            ->orderBy('course_id')->orderBy('position')
+            ->with('course')
             ->withCount(['quizQuestions', 'challenges'])
             ->get();
     }
 
-    public function test_the_course_has_its_lessons_in_order(): void
+    public function test_each_course_has_its_lessons_in_order(): void
     {
-        $lessons = $this->lessons();
+        foreach (self::COURSES as $course => $expected) {
+            $lessons = $this->lessons($course);
 
-        $this->assertSame(self::LESSONS, $lessons->pluck('slug')->all());
+            $this->assertSame($expected, $lessons->pluck('slug')->all());
 
-        foreach ($lessons as $lesson) {
-            $this->assertNull($lesson->dataset, $lesson->slug);
-            $this->assertSame(8, $lesson->quiz_questions_count, "{$lesson->slug} quiz questions");
-            // Lesson 1 has five challenges; every later lesson has six.
-            $this->assertSame($lesson->position === 1 ? 5 : 6, $lesson->challenges_count, "{$lesson->slug} challenges");
+            foreach ($lessons as $lesson) {
+                $this->assertNull($lesson->dataset, $lesson->slug);
+                $this->assertSame(8, $lesson->quiz_questions_count, "{$lesson->slug} quiz questions");
+                // The first lesson of OOP in PHP has five challenges; every other lesson has six.
+                $isFirstLesson = $course === 'php-oop' && $lesson->position === 1;
+                $this->assertSame($isFirstLesson ? 5 : 6, $lesson->challenges_count, "{$lesson->slug} challenges");
+            }
         }
     }
 
@@ -121,7 +196,8 @@ class PhpLessonContentTest extends TestCase
     {
         $normalise = fn (string $code) => preg_replace('/\s+/', ' ', trim(str_replace('<?php', '', $code)));
 
-        foreach ($this->lessons()->where('position', '>', 1) as $lesson) {
+        // The first lesson of OOP in PHP builds its challenges from its own examples, on purpose.
+        foreach ($this->lessons()->reject(fn (Lesson $lesson) => $lesson->course->slug === 'php-oop' && $lesson->position === 1) as $lesson) {
             preg_match_all('/```php\n(.*?)```/s', $lesson->content, $matches);
             $shown = array_map($normalise, [$lesson->starter_code, ...$matches[1]]);
 

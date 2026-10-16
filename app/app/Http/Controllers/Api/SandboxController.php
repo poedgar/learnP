@@ -18,6 +18,8 @@ class SandboxController extends Controller
      */
     public function __invoke(Lesson $lesson, SqlSandbox $sqlSandbox, PhpSandbox $phpSandbox): JsonResponse
     {
+        abort_if($lesson->course->runsOnDevice(), 422, 'Code in this course runs on your device, not on the server.');
+
         if ($lesson->course->language === 'php') {
             return response()->json($phpSandbox->run(app(RunPhpRequest::class)->validated('code')));
         }

@@ -59,8 +59,8 @@ class PhpChallengeHarnessTest extends TestCase
 
     public function test_every_php_challenge_solution_passes_all_its_checks(): void
     {
-        $challenges = Challenge::whereNotNull('checks')->get();
-        $this->assertCount(41, $challenges);
+        $challenges = Challenge::whereNotNull('checks')->whereRelation('lesson.course', 'language', 'php')->get();
+        $this->assertCount(359, $challenges);
 
         foreach ($challenges as $challenge) {
             $report = $this->runHarness($challenge->solution, $challenge->checks);
@@ -74,7 +74,7 @@ class PhpChallengeHarnessTest extends TestCase
 
     public function test_every_php_challenge_starter_fails_at_least_one_check(): void
     {
-        foreach (Challenge::whereNotNull('checks')->get() as $challenge) {
+        foreach (Challenge::whereNotNull('checks')->whereRelation('lesson.course', 'language', 'php')->get() as $challenge) {
             $report = $this->runHarness($challenge->starter_code, $challenge->checks);
 
             $this->assertContains(false, array_column($report['checks'], 'passed'), "{$challenge->title} passes without any work.");
@@ -161,6 +161,40 @@ class PhpChallengeHarnessTest extends TestCase
 
         $this->assertFalse($report['checks'][0]['passed']);
         $this->assertSame("Expected 'Dune by Frank Herbert', got 'Dune'.", $report['checks'][0]['message']);
+    }
+
+    public function test_checks_can_read_the_learners_output_variables_and_code(): void
+    {
+        $report = $this->runHarness('<?php $title = "Dune"; echo "Reading $title";', [
+            ['label' => 'output', 'code' => "return expect_same(learnp_output(), 'Reading Dune');"],
+            ['label' => 'variable', 'code' => "return expect_same(\$GLOBALS['title'], 'Dune');"],
+            ['label' => 'code', 'code' => "return str_contains(learnp_code(), 'echo') ?: 'no echo';"],
+        ]);
+
+        $this->assertSame([true, true, true], array_column($report['checks'], 'passed'), json_encode($report['checks']));
+        $this->assertSame('Reading Dune', $report['output']);
+    }
+
+    public function test_checks_can_run_a_variant_of_the_learners_script(): void
+    {
+        $report = $this->runHarness('<?php $n = 2; echo $n * 10;', [
+            ['label' => 'variant', 'code' => "return expect_same(learnp_run(str_replace('\$n = 2', '\$n = 5', learnp_code())), '50');"],
+            ['label' => 'original output is untouched', 'code' => "return expect_same(learnp_output(), '20');"],
+        ]);
+
+        $this->assertSame([true, true], array_column($report['checks'], 'passed'), json_encode($report['checks']));
+        $this->assertSame('20', $report['output']);
+    }
+
+    public function test_failed_array_checks_show_short_arrays(): void
+    {
+        $report = $this->runHarness('<?php $prices = [9.99, 20.0];', [
+            ['label' => 'short', 'code' => "return expect_same(\$GLOBALS['prices'], [9.99, 19.99]);"],
+            ['label' => 'long', 'code' => 'return expect_same(range(1, 100), []);'],
+        ]);
+
+        $this->assertSame('Expected [9.99,19.99], got [9.99,20.0].', $report['checks'][0]['message']);
+        $this->assertSame('Expected [], got an array with 100 items.', $report['checks'][1]['message']);
     }
 
     public function test_exceptions_in_checks_fail_only_that_check(): void

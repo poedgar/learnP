@@ -54,7 +54,7 @@ class RunnerEndToEndTest extends TestCase
     {
         $sandbox = $this->sandbox();
 
-        foreach (Challenge::whereNotNull('checks')->get() as $challenge) {
+        foreach (Challenge::whereNotNull('checks')->whereRelation('lesson.course', 'language', 'php')->get() as $challenge) {
             $result = $sandbox->check($challenge->solution, $challenge->checks);
 
             $this->assertTrue($result['passed'], "{$challenge->title}: ".json_encode($result));
@@ -65,7 +65,7 @@ class RunnerEndToEndTest extends TestCase
     {
         $sandbox = $this->sandbox();
 
-        foreach (Challenge::whereNotNull('checks')->get() as $challenge) {
+        foreach (Challenge::whereNotNull('checks')->whereRelation('lesson.course', 'language', 'php')->get() as $challenge) {
             $this->assertFalse($sandbox->check($challenge->starter_code, $challenge->checks)['passed'], $challenge->title);
         }
     }

@@ -1,5 +1,20 @@
 /** Shapes of the learnP API (app/app/Http/Resources and the sandbox controllers). */
-export type Language = 'sql' | 'php';
+export type Language = 'sql' | 'php' | 'javascript' | 'typescript' | 'html';
+
+/** Languages whose code runs on the device, in a sandbox frame (see src/js-runtime). */
+export type FrameLanguage = 'javascript' | 'typescript' | 'html';
+
+export const LANGUAGE_NAMES: Record<Language, string> = {
+  sql: 'SQL',
+  php: 'PHP',
+  javascript: 'JavaScript',
+  typescript: 'TypeScript',
+  html: 'HTML & CSS',
+};
+
+export function runsInFrame(language: Language): language is FrameLanguage {
+  return language === 'javascript' || language === 'typescript' || language === 'html';
+}
 
 export interface CourseSummary {
   id: number;
@@ -38,7 +53,8 @@ export interface Challenge {
   starter_code: string | null;
   hint: string | null;
   order_matters: boolean;
-  checks: { label: string; code: string }[] | null;
+  /** PHP and JavaScript: { label, code }. TypeScript may also have { label, compiles } or { label, rejects }. */
+  checks: { label: string; code?: string; compiles?: string; rejects?: string; width?: number }[] | null;
 }
 
 export interface Lesson {
@@ -84,6 +100,28 @@ export interface PhpRun {
   output: string;
   fatal: boolean;
   durationMs: number;
+}
+
+/** A line printed by console.log and friends. */
+export interface ConsoleEntry {
+  level: 'log' | 'warn' | 'error';
+  text: string;
+}
+
+/** A JavaScript or TypeScript run, from src/js-runtime/engine.js. */
+export interface JsRun {
+  entries: ConsoleEntry[];
+  output: string;
+  error: string | null;
+  typeErrors: { line: number; column: number; message: string }[];
+  stillRunning: boolean;
+  durationMs: number;
+  hasPage: boolean;
+}
+
+/** A JavaScript or TypeScript check report: a PhpCheck plus the console entries. */
+export interface JsCheck extends PhpCheck {
+  entries: ConsoleEntry[];
 }
 
 export interface QuizAnswer {

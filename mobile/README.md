@@ -2,7 +2,10 @@
 
 The learnP courses on iOS and Android, built with Expo (SDK 57) and Expo Router. It uses the same
 API as the web app (`../app`). SQL and PHP both run on the server; PHP runs on the separate runner
-(`../runner`).
+(`../runner`). JavaScript, TypeScript and HTML & CSS run on the phone, in a WebView (`src/js-runtime`), with the
+same engine as the web app; TypeScript loads its compiler from the API server's
+`/vendor/typescript/` (created by `npm run build` or `npm run dev` in `../app`). After changing the
+engine in `../app/resources/js/lib/js`, run `npm run sync-js-runtime` here.
 
 ## Running it on your phone
 
@@ -60,6 +63,13 @@ Run through this on one iPhone and one Android phone before a release.
   - [ ] An error shows the statement number.
   - [ ] **Restore example** works.
 - [ ] Sandbox (PHP): echo output shows. With the runner stopped you see "The PHP sandbox is unavailable. Try again shortly." and your code stays.
+- [ ] Sandbox (JavaScript), with the phone offline apart from the API:
+  - [ ] `console.log()` output shows, and an error shows its line.
+  - [ ] `while (true) {}` stops after about 2 seconds with a message, and the app stays responsive.
+  - [ ] In a DOM lesson, the page appears under the output; tapping its buttons works and adds their logs.
+- [ ] Sandbox (HTML & CSS): **Run** shows the page under the output, styled by its `<style>`; the key bar has `< >`, `</` and `=" "`.
+- [ ] Sandbox (TypeScript): the first run loads the compiler from the API server; a type error shows its line and the code doesn't run.
+- [ ] Challenges (JavaScript, TypeScript and HTML): **Check answer** gives the verdict and the check list; the Grid lesson's narrow and wide checks pass.
 - [ ] Editor:
   - [ ] Typing fast (hold a key, paste a long snippet) loses no characters.
   - [ ] The key bar appears above the keyboard, inserts `$`, `->` and `{}`, and paired keys put the cursor inside.
@@ -224,3 +234,5 @@ The PHP runner's restrictions matter here: `php -n` with no extensions loaded fr
 4. **SQL: indexes and EXPLAIN, plus transactions.** This completes the design side of the course.
 
 I can draft a lesson plan for any of these in the same format as [docs/superpowers](docs/superpowers).
+
+

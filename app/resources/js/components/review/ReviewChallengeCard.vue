@@ -5,6 +5,9 @@ import MarkdownContent from '../MarkdownContent.vue';
 import EditorPanel from '../EditorPanel.vue';
 import RunResults from '../RunResults.vue';
 import PhpOutput from '../PhpOutput.vue';
+import JsOutput from '../JsOutput.vue';
+import PagePreview from '../PagePreview.vue';
+import { usePagePreview } from '../../lib/js/usePagePreview';
 import SqlCheckDetails from '../lesson/SqlCheckDetails.vue';
 import PhpCheckDetails from '../lesson/PhpCheckDetails.vue';
 import GradeButtons from './GradeButtons.vue';
@@ -27,6 +30,7 @@ const run = ref(null);
 const check = ref(null);
 const failure = ref('');
 const passed = computed(() => check.value?.passed ?? false);
+const page = usePagePreview();
 
 async function work(kind) {
     if (busy.value) return;
@@ -34,9 +38,11 @@ async function work(kind) {
     failure.value = '';
     run.value = null;
     check.value = null;
+    page.clear();
     try {
         if (kind === 'run') {
-            run.value = await engine.value.run(code.value);
+            run.value = await engine.value.run(code.value, { host: page.hostElement() });
+            if (run.value.js) page.show(run.value.js);
         } else {
             check.value = await engine.value.check(props.challenge, code.value);
         }
@@ -85,13 +91,16 @@ async function work(kind) {
             </div>
             <GradeButtons v-if="passed" :card="card" :grades="['hard', 'good', 'easy']" @grade="emit('grade', $event)" />
             <SqlCheckDetails v-if="language === 'sql'" :check="check" />
-            <PhpCheckDetails v-else :check="check" />
+            <PhpCheckDetails v-else :check="check" :language="language" />
         </template>
 
         <template v-else-if="run">
             <RunResults v-if="run.sql" :run="run.sql" />
+            <JsOutput v-else-if="run.js" v-bind="run.js" :quiet="language === 'html'" />
             <PhpOutput v-else v-bind="run.php" />
         </template>
+
+        <PagePreview :ref="page.preview" :visible="Boolean(page.frame.value)" />
     </section>
 </template>
 

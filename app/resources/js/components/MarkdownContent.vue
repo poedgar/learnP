@@ -8,7 +8,7 @@ const props = defineProps({
     source: { type: String, required: true },
     /** Render a single paragraph without the wrapping <p>, e.g. for quiz questions. */
     inline: { type: Boolean, default: false },
-    /** Add a "Try it" button under each code example in this language (sql or php). */
+    /** Add a "Try it" button under each code example in this language (the lesson's language). */
     runnable: { type: String, default: null },
 });
 

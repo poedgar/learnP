@@ -13,4 +13,10 @@ class Course extends Model
     {
         return $this->hasMany(Lesson::class)->orderBy('position');
     }
+
+    /** JavaScript, TypeScript and HTML run on the learner's device (a sandboxed frame), never on the server. */
+    public function runsOnDevice(): bool
+    {
+        return in_array($this->language, ['javascript', 'typescript', 'html'], true);
+    }
 }

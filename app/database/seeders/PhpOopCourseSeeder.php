@@ -29,7 +29,7 @@ class PhpOopCourseSeeder extends Seeder
             'title' => 'OOP in PHP',
             'language' => 'php',
             'description' => 'Organise your code around objects. Learn classes, constructors, encapsulation and the ideas behind every modern PHP framework.',
-            'position' => 2,
+            'position' => 3,
         ]);
 
         $lesson = $course->lessons()->updateOrCreate(['slug' => 'classes-and-objects'], [

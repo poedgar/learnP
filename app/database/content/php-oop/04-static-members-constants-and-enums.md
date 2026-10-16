@@ -291,4 +291,40 @@ foreach (Format::cases() as $format) {
 }
 ```
 
+## Enums that implement interfaces
+
+An enum can implement an interface, just like a class. Code that asks for the interface then
+accepts enum cases and objects alike. Enums can also hold constants:
+
+```php
+interface HasColour
+{
+    public function colour(): string;
+}
+
+enum Status: string implements HasColour
+{
+    case Draft = 'draft';
+    case Published = 'published';
+
+    const DEFAULT = self::Draft;
+
+    public function colour(): string
+    {
+        return match ($this) {
+            self::Draft => 'grey',
+            self::Published => 'green',
+        };
+    }
+}
+
+function badge(HasColour $item): string
+{
+    return "[{$item->colour()}]";
+}
+
+echo badge(Status::Published) . ' ' . badge(Status::DEFAULT) . "\n";
+var_dump(Status::Draft instanceof HasColour);
+```
+
 Next, try the quiz to check your understanding, then solve the challenges.

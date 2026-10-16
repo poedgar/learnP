@@ -6,6 +6,9 @@ import MarkdownContent from '../MarkdownContent.vue';
 import EditorPanel from '../EditorPanel.vue';
 import RunResults from '../RunResults.vue';
 import PhpOutput from '../PhpOutput.vue';
+import JsOutput from '../JsOutput.vue';
+import PagePreview from '../PagePreview.vue';
+import { usePagePreview } from '../../lib/js/usePagePreview';
 import SqlCheckDetails from './SqlCheckDetails.vue';
 import PhpCheckDetails from './PhpCheckDetails.vue';
 import Pager from '../Pager.vue';
@@ -32,6 +35,7 @@ const busy = ref(null); // 'run' | 'check' | null
 const run = ref(null);
 const check = ref(null);
 const failure = ref('');
+const page = usePagePreview();
 
 function stateFor(challenge) {
     if (!progress.challenges[challenge.id]) {
@@ -44,6 +48,7 @@ watch(
     active,
     (challenge) => {
         code.value = stateFor(challenge).code ?? challenge.starter_code ?? '';
+        page.clear();
         showHint.value = false;
         run.value = null;
         check.value = null;
@@ -59,8 +64,10 @@ async function execute() {
     busy.value = 'run';
     failure.value = '';
     check.value = null;
+    page.clear();
     try {
-        run.value = await engine.value.run(code.value);
+        run.value = await engine.value.run(code.value, { host: page.hostElement() });
+        if (run.value.js) page.show(run.value.js);
     } catch (error) {
         run.value = null;
         failure.value = error.message;
@@ -74,6 +81,7 @@ async function submit() {
     busy.value = 'check';
     failure.value = '';
     run.value = null;
+    page.clear();
     try {
         check.value = await engine.value.check(active.value, code.value);
         if (check.value.passed) {
@@ -91,6 +99,7 @@ function reset() {
     code.value = active.value.starter_code ?? '';
     run.value = null;
     check.value = null;
+    page.clear();
 }
 
 const nextUnsolved = computed(() => {
@@ -185,13 +194,16 @@ function goTo(challenge) {
                 </div>
 
                 <SqlCheckDetails v-if="language === 'sql'" :check="check" />
-                <PhpCheckDetails v-else :check="check" />
+                <PhpCheckDetails v-else :check="check" :language="language" />
             </template>
 
             <template v-else-if="run">
                 <RunResults v-if="run.sql" :run="run.sql" />
+                <JsOutput v-else-if="run.js" v-bind="run.js" :quiet="language === 'html'" />
                 <PhpOutput v-else v-bind="run.php" />
             </template>
+
+            <PagePreview :ref="page.preview" :visible="Boolean(page.frame.value)" />
         </section>
     </div>
 </template>

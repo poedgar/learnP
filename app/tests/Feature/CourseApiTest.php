@@ -19,17 +19,32 @@ class CourseApiTest extends TestCase
 
     public function test_courses_are_listed_with_lesson_counts(): void
     {
-        $this->getJson('/api/courses')
-            ->assertOk()
-            ->assertJsonPath('data.0.slug', 'sql')
-            ->assertJsonPath('data.0.language', 'sql')
-            ->assertJsonPath('data.0.lessons_count', 10)
-            ->assertJsonPath('data.1.slug', 'php-oop')
-            ->assertJsonPath('data.1.language', 'php')
-            ->assertJsonPath('data.1.lessons_count', 7)
-            ->assertJsonPath('data.2.slug', 'advanced-sql')
-            ->assertJsonPath('data.2.language', 'sql')
-            ->assertJsonPath('data.2.lessons_count', 10);
+        $courses = [
+            ['sql', 'sql', 10],
+            ['php-basics', 'php', 11],
+            ['php-oop', 'php', 7],
+            ['advanced-sql', 'sql', 10],
+            ['php-oop-advanced', 'php', 10],
+            ['php-design-patterns', 'php', 9],
+            ['php-algorithms', 'php', 9],
+            ['functional-php', 'php', 4],
+            ['php-testing', 'php', 5],
+            ['php-clean-code', 'php', 5],
+            ['html-css', 'html', 7],
+            ['js-basics', 'javascript', 8],
+            ['js-async', 'javascript', 5],
+            ['js-dom', 'javascript', 5],
+            ['typescript', 'typescript', 6],
+            ['regex', 'javascript', 6],
+        ];
+
+        $response = $this->getJson('/api/courses')->assertOk()->assertJsonCount(count($courses), 'data');
+
+        foreach ($courses as $index => [$slug, $language, $lessons]) {
+            $response->assertJsonPath("data.$index.slug", $slug)
+                ->assertJsonPath("data.$index.language", $language)
+                ->assertJsonPath("data.$index.lessons_count", $lessons);
+        }
     }
 
     public function test_course_lists_its_lessons_without_their_content(): void

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->string('title');
             $table->text('description');
-            $table->string('language')->comment('Sandbox language: sql or php');
+            $table->string('language')->comment('Sandbox language: sql, php, javascript, typescript or html');
             $table->unsignedInteger('position')->default(0);
             $table->timestamps();
         });

@@ -4,6 +4,10 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { TS_VERSION } from './resources/js/lib/js/ts-version.js';
 
 /**
  * php-wasm imports its WebAssembly binary and data files expecting file URLs
@@ -19,6 +23,41 @@ function phpWasmAssets() {
             }
             const resolved = await this.resolve(source, importer, { skipSelf: true });
             return resolved ? `${resolved.id}?url` : null;
+        },
+    };
+}
+
+/**
+ * The JavaScript sandbox type-checks TypeScript with the real compiler, loaded on demand by a
+ * worker in the browser and by the mobile app. Publish it, with lib.es2023.d.ts and everything that
+ * references, at a stable URL: /vendor/typescript/<version>/typescript.js and libs.js.
+ */
+function typescriptCompiler() {
+    return {
+        name: 'learnp:typescript-compiler',
+        buildStart() {
+            const require = createRequire(import.meta.url);
+            const compiler = require.resolve('typescript/lib/typescript.js');
+            const installed = JSON.parse(readFileSync(require.resolve('typescript/package.json'), 'utf8')).version;
+            if (installed !== TS_VERSION) {
+                throw new Error(`TS_VERSION (${TS_VERSION}) does not match the installed typescript package (${installed}).`);
+            }
+
+            const libs = {};
+            const queue = ['lib.es2023.d.ts'];
+            while (queue.length) {
+                const name = queue.pop();
+                if (name in libs) continue;
+                libs[name] = readFileSync(join(dirname(compiler), name), 'utf8');
+                for (const [, lib] of libs[name].matchAll(/<reference lib="([^"]+)"/g)) {
+                    queue.push(`lib.${lib.toLowerCase()}.d.ts`);
+                }
+            }
+
+            const target = fileURLToPath(new URL(`./public/vendor/typescript/${TS_VERSION}/`, import.meta.url));
+            mkdirSync(target, { recursive: true });
+            writeFileSync(join(target, 'typescript.js'), readFileSync(compiler));
+            writeFileSync(join(target, 'libs.js'), `self.__learnpTsLibs = ${JSON.stringify(libs)};\n`);
         },
     };
 }
@@ -41,6 +80,7 @@ export default defineConfig({
         }),
         tailwindcss(),
         phpWasmAssets(),
+        typescriptCompiler(),
     ],
     resolve: {
         alias: [

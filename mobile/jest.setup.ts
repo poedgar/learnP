@@ -5,6 +5,8 @@ import { useReviewStore } from './src/review/store';
 
 // The WebView editor can't run under Jest; src/editor/__mocks__ has a TextInput stand-in.
 jest.mock('./src/editor/CodeMirrorView');
+// Nor can the WebView JavaScript runner; src/js-runtime/__mocks__ answers with canned results.
+jest.mock('./src/js-runtime/JsRunnerView');
 
 // An in-memory AsyncStorage, so tests don't depend on the package's own mock layout.
 jest.mock('@react-native-async-storage/async-storage', () => {

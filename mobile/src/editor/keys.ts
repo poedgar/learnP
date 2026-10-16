@@ -20,7 +20,32 @@ const parens = key('( )', '()', 'Insert parentheses', 1);
 const quotes = key("' '", "''", 'Insert quotes', 1);
 const semicolon = key(';', ';', 'Insert semicolon');
 
+const javascript = [
+  tab,
+  key('{ }', '{}', 'Insert braces', 1),
+  parens,
+  key('[ ]', '[]', 'Insert brackets', 1),
+  quotes,
+  key('` `', '``', 'Insert backticks', 1),
+  key('=>', '=>', 'Insert arrow'),
+  semicolon,
+  key('${ }', '${}', 'Insert template placeholder', 2),
+];
+
 export const KEYS: Record<Language, EditorKey[]> = {
+  html: [
+    tab,
+    key('< >', '<>', 'Insert angle brackets', 1),
+    key('</', '</', 'Insert closing tag start'),
+    key('=" "', '=""', 'Insert attribute value', 2),
+    key('{ }', '{}', 'Insert braces', 1),
+    key(':', ':', 'Insert colon'),
+    semicolon,
+    key('#', '#', 'Insert hash'),
+    key('.', '.', 'Insert full stop'),
+  ],
+  javascript,
+  typescript: [...javascript.slice(0, 7), key(':', ':', 'Insert colon'), key('< >', '<>', 'Insert angle brackets', 1), ...javascript.slice(7)],
   php: [
     tab,
     key('$', '$', 'Insert dollar sign'),

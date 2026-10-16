@@ -38,11 +38,48 @@ function expect_throws(string $class, callable $callback): true|string
     return "Expected $class to be thrown, but nothing was thrown.";
 }
 
+/** Everything the learner's code has printed. For use inside check code. */
+function learnp_output(): string
+{
+    return (string) ob_get_contents();
+}
+
+/** The learner's code, as written. For use inside check code. */
+function learnp_code(): string
+{
+    return (string) file_get_contents(__DIR__.'/main.php');
+}
+
+/**
+ * Runs a variant of a simple script (one that declares no functions or classes)
+ * in its own scope, and returns what it printed. For use inside check code, to
+ * see that a result is worked out rather than typed in.
+ */
+function learnp_run(string $code): string
+{
+    ob_start();
+    try {
+        (static function (string $learnpCode): void {
+            eval('?>'.$learnpCode);
+        })($code);
+    } finally {
+        $output = (string) ob_get_clean();
+    }
+
+    return $output;
+}
+
 function learnp_describe(mixed $value): string
 {
+    if (is_array($value)) {
+        // Short arrays are shown in full, so the learner can see what differs.
+        $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION);
+
+        return $json !== false && strlen($json) <= 160 ? $json : 'an array with '.count($value).' items';
+    }
+
     return match (true) {
         is_object($value) => 'an object of class '.$value::class,
-        is_array($value) => 'an array with '.count($value).' items',
         default => var_export($value, true),
     };
 }
