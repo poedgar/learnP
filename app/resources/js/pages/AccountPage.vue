@@ -35,7 +35,10 @@ async function submit() {
         router.push(destination.value);
     } catch (error) {
         errors.value = error.errors ?? {};
-        message.value = Object.keys(errors.value).length ? '' : error.message;
+        // Errors for fields the form shows go under them; anything else goes in the summary.
+        const shown = ['name', 'email', 'password'];
+        const other = Object.entries(errors.value).find(([field]) => !shown.includes(field));
+        message.value = other ? other[1][0] : Object.keys(errors.value).length ? '' : error.message;
     } finally {
         busy.value = false;
     }

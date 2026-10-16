@@ -22,10 +22,10 @@ function signedOutElsewhere() {
 
 export async function loadUser() {
     try {
-        signedIn(await api.user());
+        const user = await api.user();
+        if (user) signedIn(user);
     } catch {
-        // 401 means signed out; anything else also leaves the app usable without an account.
-        auth.user = null;
+        // Unreachable server: the app stays usable without an account.
     } finally {
         auth.ready = true;
     }

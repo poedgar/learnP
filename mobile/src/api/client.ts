@@ -79,7 +79,7 @@ export const api = {
     request<PhpCheck>('POST', `challenges/${challengeId}/check`, { code }),
   reviewItems: (quizQuestionIds: number[], challengeIds: number[]) =>
     request<ReviewItemsResponse>('POST', 'review-items', { quiz_questions: quizQuestionIds, challenges: challengeIds }),
-  user: () => request<{ data: User }>('GET', 'user').then((r) => r.data),
+  user: () => request<{ data: User | null }>('GET', 'user').then((r) => r.data),
   register: (details: { name: string; email: string; password: string; password_confirmation: string; device_name: string }) =>
     request<AuthResponse>('POST', 'register', details),
   login: (credentials: { email: string; password: string; device_name: string }) =>

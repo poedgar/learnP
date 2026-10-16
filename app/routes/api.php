@@ -29,8 +29,10 @@ Route::middleware('throttle:auth')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('login');
 });
 
+// Open to guests, who get null: the apps ask on every launch, and a 401 there isn't an error.
+Route::get('user', [AuthController::class, 'show'])->name('user');
+
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('user', [AuthController::class, 'show'])->name('user');
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('progress', [ProgressController::class, 'show'])->name('progress.show');

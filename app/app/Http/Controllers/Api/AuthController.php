@@ -55,9 +55,12 @@ class AuthController extends Controller
         return response()->noContent();
     }
 
-    public function show(Request $request): UserResource
+    /** The signed-in user, or null for a guest. */
+    public function show(Request $request): JsonResponse
     {
-        return new UserResource($request->user());
+        $user = $request->user('sanctum');
+
+        return response()->json(['data' => $user ? new UserResource($user) : null]);
     }
 
     private function signIn(Request $request, User $user): JsonResponse

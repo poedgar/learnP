@@ -138,9 +138,24 @@ class AuthApiTest extends TestCase
         $this->postJson('/api/login', $attempt)->assertTooManyRequests();
     }
 
-    public function test_the_current_user_needs_a_signed_in_request(): void
+    public function test_a_guest_has_no_current_user(): void
     {
-        $this->getJson('/api/user')->assertUnauthorized();
+        $this->getJson('/api/user')->assertOk()->assertExactJson(['data' => null]);
         $this->postJson('/api/logout')->assertUnauthorized();
+    }
+
+    public function test_the_web_app_gets_a_session_on_whatever_host_it_is_opened_on(): void
+    {
+        $this->withHeaders(['Referer' => 'http://192.168.1.20:8000/'])
+            ->postJson('http://192.168.1.20:8000/api/register', [
+                'name' => 'Ada',
+                'email' => 'ada@example.com',
+                'password' => 'correct-horse',
+                'password_confirmation' => 'correct-horse',
+            ])
+            ->assertCreated()
+            ->assertJsonMissingPath('token');
+
+        $this->assertAuthenticated('web');
     }
 }

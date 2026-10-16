@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { create } from 'zustand';
-import { api, ApiError } from '../api/client';
+import { api } from '../api/client';
 import type { User } from '../api/types';
 import { flushSync, startSync, stopSync } from '../sync/sync';
 import { clearToken, loadToken, saveToken } from './token';
@@ -35,10 +35,14 @@ function signedOutElsewhere(): void {
 
 export async function loadUser(): Promise<void> {
   try {
-    if (await loadToken()) signedIn(await api.user());
-  } catch (error) {
-    // Offline, the app works signed out until the next launch; a rejected token is dropped.
-    if (error instanceof ApiError && error.status === 401) await clearToken();
+    if (await loadToken()) {
+      const user = await api.user();
+      // No user for a saved token means it was revoked: drop it.
+      if (user) signedIn(user);
+      else await clearToken();
+    }
+  } catch {
+    // Offline, the app works signed out until the next launch.
   } finally {
     useAuthStore.setState({ ready: true });
   }
