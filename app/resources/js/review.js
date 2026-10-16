@@ -43,6 +43,16 @@ watch(
 
 export const reviewCards = state.cards;
 
+export function replaceCard(key, card) {
+    state.cards[key] = card;
+}
+
+export function clearCards() {
+    for (const key of Object.keys(state.cards)) {
+        delete state.cards[key];
+    }
+}
+
 export const itemKey = (kind, id) => `${kind}:${id}`;
 
 /** Local midnight, `days` days after `now`, so a card is due all day rather than from a set minute. */

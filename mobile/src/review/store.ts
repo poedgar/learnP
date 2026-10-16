@@ -29,3 +29,11 @@ export const useReviewStore = create<ReviewState>()(
     },
   ),
 );
+
+export function replaceCard(key: string, card: Card): void {
+  useReviewStore.setState((state) => ({ cards: { ...state.cards, [key]: card } }));
+}
+
+export function clearCards(): void {
+  useReviewStore.setState({ cards: {} });
+}

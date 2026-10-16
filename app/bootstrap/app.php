@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Learner PHP must run exactly as written; whitespace is significant.
         $middleware->trimStrings(except: ['code']);
+
+        // The web app signs in with a session cookie; the mobile app uses API tokens.
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

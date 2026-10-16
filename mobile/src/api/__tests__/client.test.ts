@@ -1,3 +1,4 @@
+import { clearToken, saveToken } from '../../auth/token';
 import { api, ApiError } from '../client';
 
 const fetchMock = jest.fn();
@@ -101,4 +102,23 @@ test('errors without a JSON body name the status', async () => {
   respond(500, undefined);
 
   await expect(api.courses()).rejects.toThrow('The server responded with an error (500).');
+});
+
+test('a saved token goes along as a bearer token', async () => {
+  await saveToken('1|secret');
+  respond(200, { data: { id: 1, name: 'Ada', email: 'ada@example.com' } });
+
+  await expect(api.user()).resolves.toEqual({ id: 1, name: 'Ada', email: 'ada@example.com' });
+
+  expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer 1|secret');
+  await clearToken();
+});
+
+test('validation errors keep their messages by field', async () => {
+  respond(422, { message: 'The email field is required.', errors: { email: ['The email field is required.'] } });
+
+  const error = await api.login({ email: '', password: '', device_name: 'phone' }).catch((e) => e);
+
+  expect(error).toBeInstanceOf(ApiError);
+  expect(error.errors).toEqual({ email: ['The email field is required.'] });
 });

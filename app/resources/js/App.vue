@@ -1,5 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { auth, signOut } from './auth';
 import { allProgress } from './progress';
 import { dueItems, passedItems, reviewCards } from './review';
 
@@ -9,6 +11,26 @@ onMounted(() => (clock = setInterval(() => (now.value = Date.now()), 60_000)));
 onUnmounted(() => clearInterval(clock));
 
 const dueCount = computed(() => dueItems(passedItems(allProgress), reviewCards, now.value).length);
+
+const route = useRoute();
+const router = useRouter();
+const signingOut = ref(false);
+
+// Back to the page they were on after signing in, unless that was an account page.
+const signInLink = computed(() => ({
+    name: 'sign-in',
+    query: ['sign-in', 'register'].includes(route.name) ? route.query : { redirect: route.fullPath },
+}));
+
+async function onSignOut() {
+    signingOut.value = true;
+    try {
+        await signOut();
+        router.push('/');
+    } finally {
+        signingOut.value = false;
+    }
+}
 </script>
 
 <template>
@@ -21,6 +43,13 @@ const dueCount = computed(() => dueItems(passedItems(allProgress), reviewCards, 
                 <RouterLink to="/review">
                     Review<span v-if="dueCount" class="due-count" :aria-label="`, ${dueCount} due`">{{ dueCount }}</span>
                 </RouterLink>
+                <template v-if="auth.ready">
+                    <span v-if="auth.user" class="account">
+                        <span class="user-name">{{ auth.user.name }}</span>
+                        <button type="button" class="btn btn-quiet" :disabled="signingOut" @click="onSignOut">Sign out</button>
+                    </span>
+                    <RouterLink v-else :to="signInLink">Sign in</RouterLink>
+                </template>
             </nav>
         </div>
     </header>
@@ -90,7 +119,32 @@ const dueCount = computed(() => dueItems(passedItems(allProgress), reviewCards, 
 
 .site-header nav {
     display: flex;
+    align-items: center;
     gap: 1.5rem;
+}
+
+.account {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.user-name {
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+}
+
+@media (max-width: 640px) {
+    .site-header nav {
+        gap: 1rem;
+    }
+
+    .user-name {
+        display: none;
+    }
 }
 
 .site-header nav a {

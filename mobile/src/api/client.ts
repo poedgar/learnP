@@ -1,13 +1,17 @@
+import { currentToken } from '../auth/token';
 import type {
+  AuthResponse,
   Course,
   CourseSummary,
   LessonResponse,
   PhpCheck,
   PhpRun,
+  ProgressState,
   QuizAnswer,
   ReviewItemsResponse,
   SqlCheck,
   SqlRun,
+  User,
 } from './types';
 
 /** Error messages match the web app's resources/js/api.js. */
@@ -15,6 +19,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    /** Validation messages by field name, when the server sent them. */
+    public readonly errors: Record<string, string[]> = {},
   ) {
     super(message);
     this.name = 'ApiError';
@@ -25,8 +31,9 @@ function baseUrl(): string {
   return (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
 }
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+async function request<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown): Promise<T> {
   let response: Response;
+  const token = currentToken();
 
   try {
     response = await fetch(`${baseUrl()}/api/${path}`, {
@@ -34,6 +41,7 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
       headers: {
         Accept: 'application/json',
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -48,7 +56,7 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
       response.status === 429
         ? 'You are running queries very quickly. Wait a few seconds, then try again.'
         : (data?.message ?? `The server responded with an error (${response.status}).`);
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, data?.errors);
   }
 
   return data as T;
@@ -71,4 +79,13 @@ export const api = {
     request<PhpCheck>('POST', `challenges/${challengeId}/check`, { code }),
   reviewItems: (quizQuestionIds: number[], challengeIds: number[]) =>
     request<ReviewItemsResponse>('POST', 'review-items', { quiz_questions: quizQuestionIds, challenges: challengeIds }),
+  user: () => request<{ data: User }>('GET', 'user').then((r) => r.data),
+  register: (details: { name: string; email: string; password: string; password_confirmation: string; device_name: string }) =>
+    request<AuthResponse>('POST', 'register', details),
+  login: (credentials: { email: string; password: string; device_name: string }) =>
+    request<AuthResponse>('POST', 'login', credentials),
+  logout: () => request<null>('POST', 'logout'),
+  progress: () => request<ProgressState>('GET', 'progress'),
+  saveProgress: (state: ProgressState) => request<null>('PUT', 'progress', state),
+  mergeProgress: (state: ProgressState) => request<ProgressState>('POST', 'progress/merge', state),
 };

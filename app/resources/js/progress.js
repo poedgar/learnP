@@ -1,7 +1,8 @@
 import { reactive, watch } from 'vue';
 
 /*
- * Learner progress lives in the browser: there are no accounts yet.
+ * Learner progress lives in the browser. Signed-in learners also keep a copy on the
+ * server (see sync.js), but the app always reads and writes this one.
  * Shape: { lessons: { [lessonId]: { read, sandboxCode, quiz: { [questionId]: {...} }, challenges: { [challengeId]: {...} } } } }
  */
 const STORAGE_KEY = 'learnp:progress:v2';
@@ -40,6 +41,17 @@ export function lessonProgress(lessonId) {
         state.lessons[lessonId] = { read: false, sandboxCode: null, quiz: {}, challenges: {} };
     }
     return state.lessons[lessonId];
+}
+
+/** Takes in a lesson's progress saved elsewhere, in place, so pages showing the lesson update. */
+export function replaceLesson(lessonId, data) {
+    Object.assign(lessonProgress(lessonId), data);
+}
+
+export function clearProgress() {
+    for (const lessonId of Object.keys(state.lessons)) {
+        delete state.lessons[lessonId];
+    }
 }
 
 /** Summary used by lesson lists and the step tabs. */

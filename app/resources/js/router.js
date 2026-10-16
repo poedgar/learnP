@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from './pages/HomePage.vue';
 import CoursePage from './pages/CoursePage.vue';
 import NotFoundPage from './pages/NotFoundPage.vue';
+import AccountPage from './pages/AccountPage.vue';
 
 export default createRouter({
     history: createWebHistory(),
@@ -15,6 +16,8 @@ export default createRouter({
             props: true,
         },
         { path: '/review', name: 'review', component: () => import('./pages/ReviewPage.vue') },
+        { path: '/sign-in', name: 'sign-in', component: AccountPage, props: { mode: 'sign-in' } },
+        { path: '/register', name: 'register', component: AccountPage, props: { mode: 'register' } },
         { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage },
     ],
     scrollBehavior(to, from) {

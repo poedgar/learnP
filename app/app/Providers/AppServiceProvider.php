@@ -33,5 +33,11 @@ class AppServiceProvider extends ServiceProvider
     {
         // Each sandbox run spawns a PHP process, so keep bursts in check.
         RateLimiter::for('sandbox', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+
+        // Slows password guessing against one account, and sign-up floods from one address.
+        RateLimiter::for('auth', fn (Request $request) => [
+            Limit::perMinute(5)->by(strtolower((string) $request->input('email')).'|'.$request->ip()),
+            Limit::perMinute(20)->by($request->ip()),
+        ]);
     }
 }

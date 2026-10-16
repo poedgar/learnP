@@ -1,8 +1,16 @@
 export class ApiError extends Error {
-    constructor(message, status) {
+    /** `errors` holds validation messages by field name, when the server sent them. */
+    constructor(message, status, errors = {}) {
         super(message);
         this.status = status;
+        this.errors = errors;
     }
+}
+
+/** Laravel sets this cookie; signed-in (session) requests must echo it back. */
+function csrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
 }
 
 async function request(method, url, body) {
@@ -14,6 +22,7 @@ async function request(method, url, body) {
             headers: {
                 Accept: 'application/json',
                 ...(body ? { 'Content-Type': 'application/json' } : {}),
+                ...(csrfToken() ? { 'X-XSRF-TOKEN': csrfToken() } : {}),
             },
             body: body ? JSON.stringify(body) : undefined,
         });
@@ -27,8 +36,10 @@ async function request(method, url, body) {
         const message =
             response.status === 429
                 ? 'You are running queries very quickly. Wait a few seconds, then try again.'
-                : (data?.message ?? `The server responded with an error (${response.status}).`);
-        throw new ApiError(message, response.status);
+                : response.status === 419
+                  ? 'Your session has expired. Reload the page and try again.'
+                  : (data?.message ?? `The server responded with an error (${response.status}).`);
+        throw new ApiError(message, response.status, data?.errors);
     }
 
     return data;
@@ -43,4 +54,11 @@ export const api = {
     check: (challengeId, sql) => request('POST', `challenges/${challengeId}/check`, { sql }),
     reviewItems: (quizQuestionIds, challengeIds) =>
         request('POST', 'review-items', { quiz_questions: quizQuestionIds, challenges: challengeIds }),
+    user: () => request('GET', 'user').then((r) => r.data),
+    register: (details) => request('POST', 'register', details).then((r) => r.user),
+    login: (credentials) => request('POST', 'login', credentials).then((r) => r.user),
+    logout: () => request('POST', 'logout'),
+    progress: () => request('GET', 'progress'),
+    saveProgress: (state) => request('PUT', 'progress', state),
+    mergeProgress: (state) => request('POST', 'progress/merge', state),
 };

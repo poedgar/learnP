@@ -4,7 +4,8 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type { QuizAnswer } from '../api/types';
 
 /**
- * Learner progress lives on the device; there are no accounts yet. The lesson
+ * Learner progress lives on the device. Signed-in learners also keep a copy on the
+ * server (see src/sync), but the app always reads and writes this one. The lesson
  * shape matches the web app's resources/js/progress.js.
  */
 export interface QuizRecord extends QuizAnswer {
@@ -67,4 +68,13 @@ export function updateLesson(
   change: (current: LessonProgress) => Partial<LessonProgress>,
 ): void {
   useProgressStore.getState().update(lessonId, change);
+}
+
+/** Takes in a lesson's progress saved elsewhere (the server); missing fields get their defaults. */
+export function replaceLesson(lessonId: number, data: Partial<LessonProgress>): void {
+  useProgressStore.setState((state) => ({ lessons: { ...state.lessons, [lessonId]: { ...EMPTY_PROGRESS, ...data } } }));
+}
+
+export function clearProgress(): void {
+  useProgressStore.setState({ lessons: {} });
 }

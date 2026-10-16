@@ -159,3 +159,25 @@ export interface ReviewItemsResponse {
   challenges: (Challenge & { lesson_id: number })[];
   lessons: ReviewLesson[];
 }
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+/** Signing in from the app returns an API token for this device. */
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
+
+/**
+ * A signed-in learner's progress as the server keeps it: lessons keyed by lesson id
+ * and review cards keyed by item, in the shapes of src/progress and src/review.
+ * A lesson saved by the web app has no theoryPage.
+ */
+export interface ProgressState {
+  lessons: Record<string, unknown>;
+  cards: Record<string, unknown>;
+}
