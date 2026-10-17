@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // The web app signs in with a session cookie; the mobile app uses API tokens.
         $middleware->statefulApi();
+
+        // Laravel Cloud's edge proxy sits in front of the app; trust it so requests carry
+        // the public host and scheme (Sanctum compares the host with the page's origin).
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -138,6 +138,29 @@ class AuthApiTest extends TestCase
         $this->postJson('/api/login', $attempt)->assertTooManyRequests();
     }
 
+    public function test_the_own_host_counts_even_when_stateful_domains_are_configured(): void
+    {
+        $this->assertContains('__SANCTUM_CURRENT_REQUEST_HOST__', config('sanctum.stateful'));
+    }
+
+    public function test_the_web_app_gets_a_session_behind_a_proxy(): void
+    {
+        $this->withHeaders([
+            'Referer' => 'https://learnp.example.com/register',
+            'X-Forwarded-Host' => 'learnp.example.com',
+            'X-Forwarded-Proto' => 'https',
+            'X-Forwarded-Port' => '443',
+        ])
+            ->postJson('http://10.0.0.5:8080/api/register', [
+                'name' => 'Ada',
+                'email' => 'ada@example.com',
+                'password' => 'correct-horse',
+                'password_confirmation' => 'correct-horse',
+            ])
+            ->assertCreated()
+            ->assertJsonMissingPath('token');
+    }
+
     public function test_a_guest_has_no_current_user(): void
     {
         $this->getJson('/api/user')->assertOk()->assertExactJson(['data' => null]);

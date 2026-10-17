@@ -18,12 +18,14 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s%s',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort(),
-        // The web app is served by this app, so its own host always counts, whatever URL it's opened on.
-        Sanctum::currentRequestHost(),
+    // The web app is served by this app, so its own host and APP_URL's always count, even
+    // when SANCTUM_STATEFUL_DOMAINS is set. Entries are hosts; a scheme there is dropped.
+    'stateful' => array_values(array_filter(array_map(
+        fn (string $domain) => preg_replace('#^https?://|/+$#', '', trim($domain)),
+        [
+            ...explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1')),
+            ...explode(',', Sanctum::currentApplicationUrlWithPort().Sanctum::currentRequestHost()),
+        ],
     ))),
 
     /*
