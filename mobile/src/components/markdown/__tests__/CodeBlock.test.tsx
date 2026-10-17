@@ -23,3 +23,8 @@ test('unknown languages come back as plain text', () => {
 test('decodeEntities turns HTML entities back into characters', () => {
   expect(decodeEntities('&lt;?php &amp;&amp; &quot;x&quot; &#39;y&#39;')).toBe('<?php && "x" \'y\'');
 });
+
+test('laravel blocks are highlighted as PHP', () => {
+  expect(highlightTokens('$app->bind(Mailer::class);', 'laravel')).toEqual(highlightTokens('$app->bind(Mailer::class);', 'php'));
+  expect(highlightTokens('$app->bind(Mailer::class);', 'laravel').length).toBeGreaterThan(1);
+});

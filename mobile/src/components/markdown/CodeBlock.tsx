@@ -6,6 +6,9 @@ import 'prismjs/components/prism-typescript';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { monoFont, useTheme, type SyntaxColor } from '../../theme';
 
+// Real framework code in lessons that can't run in the sandbox: highlighted as PHP, never runnable.
+Prism.languages.laravel = Prism.languages.php;
+
 /** Prism token types → theme syntax colours. Anything unlisted inherits its parent's colour. */
 const COLORS: Record<string, SyntaxColor> = {
   keyword: 'keyword',
