@@ -1,8 +1,8 @@
 /*
- * A small Git, with just enough shell around it, for the Git course. It runs inside the sandbox
- * frame (see frame-runtime.js). The web app, the mobile app (via sources.ts) and the content tests
- * inject it as source text, so createGitShell() must stay self-contained: no imports, and nothing
- * from outside the function.
+ * A small Git, with just enough shell around it, for the Git course. It only interprets text, so
+ * it runs anywhere JavaScript does: in the web page, in the mobile app's own engine and in Node
+ * (see ./engine.js, which the mobile app copies with this file). Keep createGitShell()
+ * self-contained: no imports, and nothing from outside the function.
  *
  * The learner's "code" is a shell script: git commands plus a few commands for files (echo,
  * printf, cat, ls, cd, pwd, mkdir, touch, rm, mv, cp), with > and >> redirects, heredocs, && and ;.

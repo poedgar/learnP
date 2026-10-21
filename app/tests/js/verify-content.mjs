@@ -20,6 +20,7 @@
 import { readFileSync } from 'node:fs';
 import { closeBrowser, createBrowserEngine, findChromium } from './browser-engine.mjs';
 import { engine as nodeEngine } from './node-engine.mjs';
+import { checkGit, runGit } from '../../resources/js/lib/git/engine.js';
 
 const [file = '-', ...flags] = process.argv.slice(2);
 const verbose = flags.includes('--verbose');
@@ -37,6 +38,23 @@ function examples(content, language) {
     return [...content.matchAll(new RegExp('```' + fence + '\\n([\\s\\S]*?)```', 'g'))].map((m) => m[1]);
 }
 
+/** Git lessons run the simulated Git directly; a command that fails or isn't supported is an error. */
+const gitEngine = {
+    async run(code) {
+        const result = runGit(code);
+        const output = result.entries.filter((entry) => entry.level !== 'command').map((entry) => entry.text).join('\n');
+        const error = result.unsupported.length
+            ? `this Git doesn't support: ${result.unsupported.join('; ')}`
+            : result.failed.length
+              ? `a command failed: ${result.failed.join('; ')}`
+              : null;
+        return { output, error, typeErrors: [], entries: [], stillRunning: false };
+    },
+    async check(code, checks) {
+        return checkGit(code, checks);
+    },
+};
+
 function failure(result) {
     if (result.typeErrors.length) return result.typeErrors.map((e) => `type error on line ${e.line}: ${e.message}`).join('; ');
     if (result.error) return result.error;
@@ -47,7 +65,7 @@ function failure(result) {
 for (const lesson of lessons) {
     const { name, language } = lesson;
     log(`\n== ${name}`);
-    const engine = language === 'html' ? browserEngine : nodeEngine;
+    const engine = language === 'git' ? gitEngine : language === 'html' ? browserEngine : nodeEngine;
     if (!engine) {
         skipped.push(name);
         log('  skipped: no Chromium for HTML lessons');
@@ -59,7 +77,7 @@ for (const lesson of lessons) {
     for (const [i, code] of blocks.entries()) {
         const result = await engine.run(code, { language });
         const failed = failure(result);
-        const shouldFail = code.startsWith('// Error:');
+        const shouldFail = code.startsWith(language === 'git' ? '# Error:' : '// Error:');
         if (Boolean(failed) !== shouldFail) {
             problems.push(`${name}: theory example ${i + 1} ${failed ? `fails: ${failed}` : 'runs, but starts with // Error:'}\n${code}`);
         }

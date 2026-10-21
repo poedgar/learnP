@@ -40,7 +40,7 @@ class JsLessonContentTest extends TestCase
      */
     private function courses(): array
     {
-        return $this->catalogFor('javascript', 'typescript', 'html');
+        return $this->catalogFor('javascript', 'typescript', 'html', 'git');
     }
 
     private function lessons(?string $course = null): Collection

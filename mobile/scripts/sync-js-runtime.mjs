@@ -1,6 +1,6 @@
 /*
  * Copies the JavaScript sandbox runtime from the web app (app/resources/js/lib/js) into
- * src/js-runtime. Run it after changing those files: `npm run sync-js-runtime`.
+ * src/js-runtime, and the simulated Git (app/resources/js/lib/git) into src/git. Run it after changing those files: `npm run sync-js-runtime`.
  * src/js-runtime/__tests__/sync.test.ts fails while the copies are out of date.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -13,6 +13,9 @@ const from = (name) => fileURLToPath(new URL(`../../app/resources/js/lib/js/${na
 const to = (name) => fileURLToPath(new URL(`../src/js-runtime/${name}`, import.meta.url));
 
 export const COPIED = ['prepare.js', 'loop-guard.js', 'engine.js', 'ts-version.js'];
+export const GIT_COPIED = ['git-sim.js', 'engine.js'];
+export const gitFrom = (name) => fileURLToPath(new URL(`../../app/resources/js/lib/git/${name}`, import.meta.url));
+const gitTo = (name) => fileURLToPath(new URL(`../src/git/${name}`, import.meta.url));
 
 export function sourcesModule() {
   return [
@@ -32,5 +35,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     writeFileSync(to(name), readFileSync(from(name)));
   }
   writeFileSync(to('sources.ts'), sourcesModule());
-  console.log(`Copied ${COPIED.join(', ')} and wrote sources.ts.`);
+  for (const name of GIT_COPIED) {
+    writeFileSync(gitTo(name), readFileSync(gitFrom(name)));
+  }
+  console.log(`Copied ${COPIED.join(', ')}, wrote sources.ts, and copied git/${GIT_COPIED.join(', git/')}.`);
 }

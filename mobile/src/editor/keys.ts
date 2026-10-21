@@ -57,6 +57,18 @@ export const KEYS: Record<Language, EditorKey[]> = {
     quotes,
     key('=>', '=>', 'Insert double arrow'),
   ],
+  // Git lessons are shell scripts of git commands.
+  git: [
+    key('git', 'git ', 'Insert git'),
+    key('" "', '""', 'Insert double quotes', 1),
+    key('-', '-', 'Insert hyphen'),
+    key('--', '--', 'Insert double hyphen'),
+    key('>', '>', 'Insert redirect'),
+    key('&&', ' && ', 'Insert and'),
+    key('/', '/', 'Insert slash'),
+    key('.', '.', 'Insert full stop'),
+    key('~', '~', 'Insert tilde'),
+  ],
   sql: [
     tab,
     key('*', '*', 'Insert asterisk'),

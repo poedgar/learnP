@@ -30,7 +30,7 @@ type Props = {
    */
   encodedInitialValue: string;
   resetKey: number;
-  language: 'sql' | 'php' | 'javascript' | 'typescript' | 'html';
+  language: 'sql' | 'php' | 'javascript' | 'typescript' | 'html' | 'git';
   dark: boolean;
   onChange: (value: string) => Promise<void>;
   onFocusChange: (focused: boolean) => Promise<void>;
@@ -82,7 +82,9 @@ export default function CodeMirrorView({
               ? html()
             : language === 'javascript' || language === 'typescript'
               ? javascript({ typescript: language === 'typescript' })
-              : sql(),
+              : language === 'git'
+                ? []
+                : sql(),
           dark ? oneDark : [],
           EditorView.theme({
             '&': { height: '100vh', fontSize: '15px' },

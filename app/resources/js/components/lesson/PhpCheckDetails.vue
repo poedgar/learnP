@@ -2,9 +2,10 @@
 import { computed } from 'vue';
 import PhpOutput from '../PhpOutput.vue';
 import JsOutput from '../JsOutput.vue';
+import GitOutput from '../GitOutput.vue';
 import { runsInFrame } from '../../lib/engines';
 
-/** Check reports from sandboxes that run the checks themselves: PHP, JavaScript, TypeScript and HTML. */
+/** Check reports from sandboxes that run the checks themselves: PHP, JavaScript, TypeScript, HTML and Git. */
 const props = defineProps({
     /** Report from checkChallenge() in lib/php/sandbox.js, or checkCode() in lib/js/sandbox.js. */
     check: { type: Object, required: true },
@@ -12,7 +13,7 @@ const props = defineProps({
 });
 
 const javascript = computed(() => runsInFrame(props.language));
-const printed = computed(() => (javascript.value ? (props.check.entries ?? []).length > 0 : props.check.output.trim() !== ''));
+const printed = computed(() => (javascript.value || props.language === 'git' ? (props.check.entries ?? []).length > 0 : props.check.output.trim() !== ''));
 </script>
 
 <template>
@@ -32,7 +33,8 @@ const printed = computed(() => (javascript.value ? (props.check.entries ?? []).l
 
         <div v-if="printed">
             <h4>What your code printed</h4>
-            <JsOutput v-if="javascript" :entries="check.entries" />
+            <GitOutput v-if="language === 'git'" :entries="check.entries" />
+            <JsOutput v-else-if="javascript" :entries="check.entries" />
             <PhpOutput v-else :output="check.output" :fatal="!check.loaded" />
         </div>
     </div>

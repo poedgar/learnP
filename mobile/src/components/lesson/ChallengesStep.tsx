@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api/client';
-import { runsInFrame, type Challenge, type JsCheck, type JsRun, type Language, type Lesson, type PhpCheck, type PhpRun, type SqlCheck, type SqlRun } from '../../api/types';
+import { runsInFrame, type Challenge, type JsCheck, type JsRun, type Language, type Lesson, type PhpCheck, type PhpRun, type SqlCheck, type SqlRun, type GitCheck, type GitRun } from '../../api/types';
 import { CodeEditor } from '../../editor/CodeEditor';
+import { checkGit, runGit } from '../../git';
 import { useJsRunner } from '../../js-runtime/useJsRunner';
 import { phpCheckMessage } from '../../lesson/php';
 import { updateLesson, useLessonProgress, useProgressStore } from '../../progress/store';
@@ -11,6 +12,7 @@ import { Button } from '../Button';
 import { CodeBlock } from '../markdown/CodeBlock';
 import { Markdown } from '../markdown/Markdown';
 import { PhpCheckDetails } from '../results/PhpCheckDetails';
+import { GitOutput } from '../results/GitOutput';
 import { JsOutput } from '../results/JsOutput';
 import { PhpOutput } from '../results/PhpOutput';
 import { RunResults } from '../results/RunResults';
@@ -18,11 +20,12 @@ import { SqlCheckDetails } from '../results/SqlCheckDetails';
 
 type Props = { lesson: Lesson; language: Language };
 
-type RunView = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun } | { kind: 'js'; run: JsRun };
+type RunView = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun } | { kind: 'js'; run: JsRun } | { kind: 'git'; run: GitRun };
 type CheckView =
   | { kind: 'sql'; check: SqlCheck; message: string }
   | { kind: 'php'; check: PhpCheck; message: string }
-  | { kind: 'js'; check: JsCheck; message: string };
+  | { kind: 'js'; check: JsCheck; message: string }
+  | { kind: 'git'; check: GitCheck; message: string };
 
 function savedCode(lessonId: number, challenge: Challenge): string {
   return useProgressStore.getState().lessons[lessonId]?.challenges[challenge.id]?.code ?? challenge.starter_code ?? '';
@@ -148,10 +151,16 @@ export function ChallengesStep({ lesson, language }: Props) {
         const view: RunView =
           language === 'sql'
             ? { kind: 'sql', run: await api.runSql(lesson.id, submitted) }
+            : language === 'git'
+              ? { kind: 'git', run: runGit(submitted) }
             : javascript
               ? { kind: 'js', run: await runner.run(submitted) }
               : { kind: 'php', run: await api.runPhp(lesson.id, submitted) };
         if (stillShown()) setRun(view);
+      } else if (language === 'git') {
+        const result = checkGit(submitted, challenge.checks ?? []);
+        afterCheck(challenge, submitted, result.passed);
+        if (stillShown()) setCheck({ kind: 'git', check: result, message: phpCheckMessage(result) });
       } else if (javascript) {
         const result = await runner.check(submitted, challenge.checks ?? []);
         afterCheck(challenge, submitted, result.passed);
@@ -305,13 +314,14 @@ export function ChallengesStep({ lesson, language }: Props) {
               <Text style={[styles.text, { color: theme.ink }]}>{"You've solved every challenge in this lesson."}</Text>
             ) : null}
           </View>
-          {check.kind === 'sql' ? <SqlCheckDetails check={check.check} /> : <PhpCheckDetails check={check.check} />}
+          {check.kind === 'sql' ? <SqlCheckDetails check={check.check} /> : <PhpCheckDetails check={check.check} git={check.kind === 'git'} />}
         </View>
       ) : null}
 
       {run?.kind === 'sql' ? <RunResults run={run.run} /> : null}
       {run?.kind === 'php' ? <PhpOutput {...run.run} /> : null}
       {run?.kind === 'js' ? <JsOutput {...run.run} quiet={language === 'html'} /> : null}
+      {run?.kind === 'git' ? <GitOutput entries={run.run.entries} /> : null}
       {javascript ? runner.view : null}
     </ScrollView>
   );

@@ -8,6 +8,8 @@ import { sql, SQLite } from '@codemirror/lang-sql';
 import { php } from '@codemirror/lang-php';
 import { javascript } from '@codemirror/lang-javascript';
 import { html } from '@codemirror/lang-html';
+import { StreamLanguage } from '@codemirror/language';
+import { shell } from '@codemirror/legacy-modes/mode/shell';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 
@@ -62,6 +64,9 @@ const theme = EditorView.theme(
 function languageFor(schema) {
     if (props.language === 'php') {
         return php({ baseLanguage: null });
+    }
+    if (props.language === 'git') {
+        return StreamLanguage.define(shell);
     }
     if (props.language === 'html') {
         return html();

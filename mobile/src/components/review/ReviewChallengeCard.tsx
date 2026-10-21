@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api/client';
-import { runsInFrame, type Challenge, type JsCheck, type JsRun, type Language, type PhpCheck, type PhpRun, type SqlCheck, type SqlRun } from '../../api/types';
+import { runsInFrame, type Challenge, type JsCheck, type JsRun, type Language, type PhpCheck, type PhpRun, type SqlCheck, type SqlRun, type GitCheck, type GitRun } from '../../api/types';
 import { CodeEditor } from '../../editor/CodeEditor';
+import { checkGit, runGit } from '../../git';
 import { useJsRunner } from '../../js-runtime/useJsRunner';
 import { phpCheckMessage } from '../../lesson/php';
 import type { Card, Grade } from '../../review/schedule';
@@ -10,6 +11,7 @@ import { useTheme } from '../../theme';
 import { Button } from '../Button';
 import { Markdown } from '../markdown/Markdown';
 import { PhpCheckDetails } from '../results/PhpCheckDetails';
+import { GitOutput } from '../results/GitOutput';
 import { JsOutput } from '../results/JsOutput';
 import { PhpOutput } from '../results/PhpOutput';
 import { RunResults } from '../results/RunResults';
@@ -25,11 +27,12 @@ type Props = {
   onEditorFocus?: () => void;
 };
 
-type RunView = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun } | { kind: 'js'; run: JsRun };
+type RunView = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun } | { kind: 'js'; run: JsRun } | { kind: 'git'; run: GitRun };
 type CheckView =
   | { kind: 'sql'; check: SqlCheck; message: string }
   | { kind: 'php'; check: PhpCheck; message: string }
-  | { kind: 'js'; check: JsCheck; message: string };
+  | { kind: 'js'; check: JsCheck; message: string }
+  | { kind: 'git'; check: GitCheck; message: string };
 
 /**
  * A challenge solved again from its starter code, checked exactly as in the lesson.
@@ -63,10 +66,15 @@ export function ReviewChallengeCard({ challenge, lessonId, language, card, onGra
         setRun(
           language === 'sql'
             ? { kind: 'sql', run: await api.runSql(lessonId, submitted) }
+            : language === 'git'
+              ? { kind: 'git', run: runGit(submitted) }
             : javascript
               ? { kind: 'js', run: await runner.run(submitted) }
               : { kind: 'php', run: await api.runPhp(lessonId, submitted) },
         );
+      } else if (language === 'git') {
+        const result = checkGit(submitted, challenge.checks ?? []);
+        setCheck({ kind: 'git', check: result, message: phpCheckMessage(result) });
       } else if (javascript) {
         const result = await runner.check(submitted, challenge.checks ?? []);
         setCheck({ kind: 'js', check: result, message: phpCheckMessage(result) });
@@ -140,13 +148,14 @@ export function ReviewChallengeCard({ challenge, lessonId, language, card, onGra
             <Text style={[styles.verdictText, { color: theme.ink }]}>{check.message}</Text>
           </View>
           {passed ? <GradeButtons card={card} grades={['hard', 'good', 'easy']} onGrade={onGrade} /> : null}
-          {check.kind === 'sql' ? <SqlCheckDetails check={check.check} /> : <PhpCheckDetails check={check.check} />}
+          {check.kind === 'sql' ? <SqlCheckDetails check={check.check} /> : <PhpCheckDetails check={check.check} git={check.kind === 'git'} />}
         </View>
       ) : null}
 
       {run?.kind === 'sql' ? <RunResults run={run.run} /> : null}
       {run?.kind === 'php' ? <PhpOutput {...run.run} /> : null}
       {run?.kind === 'js' ? <JsOutput {...run.run} quiet={language === 'html'} /> : null}
+      {run?.kind === 'git' ? <GitOutput entries={run.run.entries} /> : null}
       {javascript ? runner.view : null}
     </View>
   );

@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api/client';
-import { runsInFrame, LANGUAGE_NAMES, type JsRun, type Language, type Lesson, type PhpRun, type SchemaTable, type SqlRun } from '../../api/types';
+import { runsInFrame, LANGUAGE_NAMES, type JsRun, type Language, type Lesson, type PhpRun, type SchemaTable, type SqlRun, type GitRun } from '../../api/types';
 import { CodeEditor } from '../../editor/CodeEditor';
+import { runGit } from '../../git';
 import { useJsRunner } from '../../js-runtime/useJsRunner';
 import { withOpeningTag } from '../../lesson/php';
 import { updateLesson, useLessonProgress } from '../../progress/store';
 import { useTheme } from '../../theme';
 import { Button } from '../Button';
+import { GitOutput } from '../results/GitOutput';
 import { JsOutput } from '../results/JsOutput';
 import { PhpOutput } from '../results/PhpOutput';
 import { RunResults } from '../results/RunResults';
@@ -21,7 +23,7 @@ type Props = {
   request: { code: string; key: number } | null;
 };
 
-type Result = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun } | { kind: 'js'; run: JsRun };
+type Result = { kind: 'sql'; run: SqlRun } | { kind: 'php'; run: PhpRun } | { kind: 'js'; run: JsRun } | { kind: 'git'; run: GitRun };
 
 export function SandboxStep({ lesson, language, schema, request }: Props) {
   const theme = useTheme();
@@ -58,7 +60,9 @@ export function SandboxStep({ lesson, language, schema, request }: Props) {
       setResult(
         language === 'sql'
           ? { kind: 'sql', run: await api.runSql(lesson.id, code.current) }
-          : javascript
+          : language === 'git'
+            ? { kind: 'git', run: runGit(code.current) }
+            : javascript
             ? { kind: 'js', run: await runner.run(code.current) }
             : { kind: 'php', run: await api.runPhp(lesson.id, code.current) },
       );
@@ -134,6 +138,7 @@ export function SandboxStep({ lesson, language, schema, request }: Props) {
       {result?.kind === 'sql' ? <RunResults run={result.run} /> : null}
       {result?.kind === 'php' ? <PhpOutput {...result.run} /> : null}
       {result?.kind === 'js' ? <JsOutput {...result.run} quiet={language === 'html'} /> : null}
+      {result?.kind === 'git' ? <GitOutput entries={result.run.entries} /> : null}
       {javascript ? runner.view : null}
       {!result && !failure ? (
         <Text style={[styles.intro, { color: theme.muted }]}>

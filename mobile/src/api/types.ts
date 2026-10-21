@@ -1,5 +1,5 @@
 /** Shapes of the learnP API (app/app/Http/Resources and the sandbox controllers). */
-export type Language = 'sql' | 'php' | 'javascript' | 'typescript' | 'html';
+export type Language = 'sql' | 'php' | 'javascript' | 'typescript' | 'html' | 'git';
 
 /** Languages whose code runs on the device, in a sandbox frame (see src/js-runtime). */
 export type FrameLanguage = 'javascript' | 'typescript' | 'html';
@@ -10,6 +10,7 @@ export const LANGUAGE_NAMES: Record<Language, string> = {
   javascript: 'JavaScript',
   typescript: 'TypeScript',
   html: 'HTML & CSS',
+  git: 'Git',
 };
 
 export function runsInFrame(language: Language): language is FrameLanguage {
@@ -140,6 +141,23 @@ export interface JsRun {
 /** A JavaScript or TypeScript check report: a PhpCheck plus the console entries. */
 export interface JsCheck extends PhpCheck {
   entries: ConsoleEntry[];
+}
+
+/** What a terminal shows for a Git script: each command, then what it printed. */
+export interface GitEntry {
+  level: 'command' | 'log' | 'error';
+  text: string;
+}
+
+export interface GitRun {
+  entries: GitEntry[];
+  failed: string[];
+  unsupported: string[];
+}
+
+/** A Git check report: a PhpCheck plus the terminal entries. */
+export interface GitCheck extends PhpCheck {
+  entries: GitEntry[];
 }
 
 export interface QuizAnswer {

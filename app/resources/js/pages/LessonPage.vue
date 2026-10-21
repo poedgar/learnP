@@ -8,6 +8,7 @@ import TheoryStep from '../components/lesson/TheoryStep.vue';
 import SqlSandboxStep from '../components/lesson/SqlSandboxStep.vue';
 import PhpSandboxStep from '../components/lesson/PhpSandboxStep.vue';
 import JsSandboxStep from '../components/lesson/JsSandboxStep.vue';
+import GitSandboxStep from '../components/lesson/GitSandboxStep.vue';
 import { runsInFrame } from '../lib/engines';
 import QuizStep from '../components/lesson/QuizStep.vue';
 import ChallengesStep from '../components/lesson/ChallengesStep.vue';
@@ -115,6 +116,12 @@ function finishReading() {
                         v-show="current === 'sandbox'"
                         :lesson="data.data"
                         :schema="data.schema"
+                        :request="sandboxRequest"
+                    />
+                    <GitSandboxStep
+                        v-else-if="language === 'git'"
+                        v-show="current === 'sandbox'"
+                        :lesson="data.data"
                         :request="sandboxRequest"
                     />
                     <JsSandboxStep

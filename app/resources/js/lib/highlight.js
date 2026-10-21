@@ -30,6 +30,7 @@ const streamParser = (mode) => {
 parsers.blade = parsers.html;
 parsers.bash = streamParser(shell);
 parsers.shell = parsers.bash;
+parsers.git = parsers.bash;
 parsers.dockerfile = streamParser(dockerFile);
 parsers.yaml = streamParser(yaml);
 

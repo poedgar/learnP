@@ -20,9 +20,9 @@ class Course extends Model
         return $this->belongsToMany(Track::class)->withPivot('position');
     }
 
-    /** JavaScript, TypeScript and HTML run on the learner's device (a sandboxed frame), never on the server. */
+    /** JavaScript, TypeScript, HTML and Git (a simulated one) run on the learner's device, never on the server. */
     public function runsOnDevice(): bool
     {
-        return in_array($this->language, ['javascript', 'typescript', 'html'], true);
+        return in_array($this->language, ['javascript', 'typescript', 'html', 'git'], true);
     }
 }

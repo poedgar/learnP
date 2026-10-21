@@ -1,6 +1,7 @@
 import { api } from '../api';
 import { checkChallenge, runScript } from './php/sandbox';
 import { checkCode, runCode } from './js/sandbox';
+import { checkGit, runGit } from './git/engine';
 
 /** The verdict shown above a check report from a sandbox that runs checks itself. */
 function withMessage(report) {
@@ -18,7 +19,7 @@ function withMessage(report) {
  * the browser (see ./php); JavaScript, TypeScript and HTML run in a sandboxed frame (see ./js). Used by
  * the lesson challenges and the review page.
  *
- * run(code, { host }) resolves to { sql }, { php } or { js }. For JavaScript, a host element shows
+ * run(code, { host }) resolves to { sql }, { php }, { js } or { git } (see ./git). For JavaScript, a host element shows
  * the page the code builds (see runCode() in ./js/sandbox).
  */
 export function engineFor(language, lessonId) {
@@ -26,6 +27,13 @@ export function engineFor(language, lessonId) {
         return {
             run: async (code) => ({ sql: await api.run(lessonId, code) }),
             check: (challenge, code) => api.check(challenge.id, code),
+        };
+    }
+
+    if (language === 'git') {
+        return {
+            run: async (code) => ({ git: runGit(code) }),
+            check: async (challenge, code) => withMessage(checkGit(code, challenge.checks)),
         };
     }
 

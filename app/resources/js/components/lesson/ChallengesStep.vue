@@ -9,6 +9,7 @@ import EditorPanel from '../EditorPanel.vue';
 import RunResults from '../RunResults.vue';
 import PhpOutput from '../PhpOutput.vue';
 import JsOutput from '../JsOutput.vue';
+import GitOutput from '../GitOutput.vue';
 import PagePreview from '../PagePreview.vue';
 import { usePagePreview } from '../../lib/js/usePagePreview';
 import SqlCheckDetails from './SqlCheckDetails.vue';
@@ -255,6 +256,7 @@ function goTo(challenge) {
             <template v-else-if="run">
                 <RunResults v-if="run.sql" :run="run.sql" />
                 <JsOutput v-else-if="run.js" v-bind="run.js" :quiet="language === 'html'" />
+                <GitOutput v-else-if="run.git" :entries="run.git.entries" />
                 <PhpOutput v-else v-bind="run.php" />
             </template>
 

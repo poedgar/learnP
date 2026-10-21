@@ -1,12 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
-import type { JsCheck, PhpCheck } from '../../api/types';
+import type { GitCheck, JsCheck, PhpCheck } from '../../api/types';
 import { useTheme } from '../../theme';
+import { GitOutput } from './GitOutput';
 import { JsOutput } from './JsOutput';
 import { PhpOutput } from './PhpOutput';
 
-/** Check reports from sandboxes that run checks themselves: PHP, and JavaScript (which adds console entries). */
-export function PhpCheckDetails({ check }: { check: PhpCheck | JsCheck }) {
-  const entries = 'entries' in check ? check.entries : null;
+/** Check reports from sandboxes that run checks themselves: PHP, JavaScript (with console entries) and Git (with terminal entries). */
+export function PhpCheckDetails({ check, git = false }: { check: PhpCheck | JsCheck | GitCheck; git?: boolean }) {
+  const entries = !git && 'entries' in check ? (check as JsCheck).entries : null;
   const theme = useTheme();
 
   return (
@@ -32,7 +33,13 @@ export function PhpCheckDetails({ check }: { check: PhpCheck | JsCheck }) {
           </View>
         );
       })}
-      {(entries ? entries.length > 0 : check.output.trim()) ? (
+      {git && 'entries' in check && check.entries.length > 0 ? (
+        <View style={styles.output}>
+          <Text style={[styles.heading, { color: theme.ink }]}>What your commands printed</Text>
+          <GitOutput entries={(check as GitCheck).entries} />
+        </View>
+      ) : null}
+      {!git && (entries ? entries.length > 0 : check.output.trim()) ? (
         <View style={styles.output}>
           <Text style={[styles.heading, { color: theme.ink }]}>What your code printed</Text>
           {entries ? <JsOutput entries={entries} /> : <PhpOutput output={check.output} fatal={!check.loaded} />}
