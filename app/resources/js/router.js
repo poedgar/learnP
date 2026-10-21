@@ -21,6 +21,8 @@ export default createRouter({
         { path: '/forgot-password', name: 'forgot-password', component: () => import('./pages/ForgotPasswordPage.vue') },
         { path: '/reset-password/:token', name: 'reset-password', component: () => import('./pages/ResetPasswordPage.vue'), props: true },
         { path: '/account', name: 'account', component: () => import('./pages/SettingsPage.vue') },
+        { path: '/search', name: 'search', component: () => import('./pages/SearchPage.vue') },
+        { path: '/courses/:course/certificate', name: 'certificate', component: () => import('./pages/CertificatePage.vue'), props: true },
         { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage },
     ],
     scrollBehavior(to, from) {

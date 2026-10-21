@@ -4,12 +4,15 @@ use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChallengeCheckController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\LearningEventController;
 use App\Http\Controllers\Api\LessonController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProgressController;
 use App\Http\Controllers\Api\QuizAnswerController;
 use App\Http\Controllers\Api\ReviewItemsController;
 use App\Http\Controllers\Api\SandboxController;
+use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\TrackController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\GitHubController;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +25,14 @@ Route::get('courses/{course:slug}/lessons/{lesson:slug}', [LessonController::cla
 
 Route::post('quiz-questions/{question}/answer', QuizAnswerController::class)->name('quiz-questions.answer');
 Route::post('review-items', ReviewItemsController::class)->name('review-items');
+Route::get('tracks', [TrackController::class, 'index'])->name('tracks.index');
+Route::get('search', SearchController::class)->middleware('throttle:60,1')->name('search');
+
+Route::middleware('throttle:events')->group(function () {
+    Route::post('challenges/{challenge}/attempts', [LearningEventController::class, 'check'])->name('challenges.attempts');
+    Route::post('challenges/{challenge}/hint-views', [LearningEventController::class, 'hint'])->name('challenges.hint-views');
+    Route::get('challenges/{challenge}/solution', [LearningEventController::class, 'solution'])->name('challenges.solution');
+});
 
 Route::middleware('throttle:sandbox')->group(function () {
     Route::post('lessons/{lesson}/run', SandboxController::class)->name('lessons.run');

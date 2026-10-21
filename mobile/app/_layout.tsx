@@ -33,6 +33,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ title: 'learnP', headerRight: () => <AccountButton /> }} />
           <Stack.Screen name="review" options={{ title: 'Review' }} />
           <Stack.Screen name="account" options={{ title: 'Account' }} />
+          <Stack.Screen name="search" options={{ title: 'Search' }} />
         </Stack>
         <KeyBarHost />
         <StatusBar style="auto" />

@@ -8,6 +8,7 @@ import { phpCheckMessage } from '../../lesson/php';
 import { updateLesson, useLessonProgress, useProgressStore } from '../../progress/store';
 import { useTheme } from '../../theme';
 import { Button } from '../Button';
+import { CodeBlock } from '../markdown/CodeBlock';
 import { Markdown } from '../markdown/Markdown';
 import { PhpCheckDetails } from '../results/PhpCheckDetails';
 import { JsOutput } from '../results/JsOutput';
@@ -47,6 +48,10 @@ export function ChallengesStep({ lesson, language }: Props) {
   const [check, setCheck] = useState<CheckView | null>(null);
   const [failure, setFailure] = useState('');
   const [showHint, setShowHint] = useState(false);
+  // Help arrives in steps: a hint after the first failed check, the solution after three.
+  const [attempts, setAttempts] = useState<Record<number, number>>({});
+  const [failures, setFailures] = useState<Record<number, number>>({});
+  const [solutions, setSolutions] = useState<Record<number, string>>({});
   const scroll = useRef<ScrollView>(null);
   const editorY = useRef(0);
   const shownId = useRef<number | null>(null);
@@ -68,6 +73,17 @@ export function ChallengesStep({ lesson, language }: Props) {
   }
 
   const active = challenges[index];
+  const failed = failures[active.id] ?? 0;
+  const isSolved = Boolean(progress.challenges[active.id]?.passed);
+  const hintAvailable = Boolean(active.hint) && (isSolved || failed >= 1);
+  const solutionAvailable = isSolved || failed >= 3;
+  const helpNote = solutionAvailable
+    ? ''
+    : !hintAvailable
+      ? active.hint
+        ? 'Stuck? Check your answer: a hint appears after your first try.'
+        : ''
+      : `The solution can be shown after ${3 - failed} more ${3 - failed === 1 ? 'try' : 'tries'}.`;
   const solved = challenges.filter((c) => progress.challenges[c.id]?.passed).length;
   const order = [...challenges.slice(index + 1), ...challenges.slice(0, index)];
   const nextUnsolved = order.find((c) => !progress.challenges[c.id]?.passed) ?? null;
@@ -107,6 +123,15 @@ export function ChallengesStep({ lesson, language }: Props) {
     }));
   }
 
+  /** Records a check: solved, the anonymous statistics, and how many tries so far. */
+  function afterCheck(challenge: Challenge, submitted: string, passed: boolean) {
+    if (passed) markSolved(challenge, submitted);
+    const attempt = (attempts[challenge.id] ?? 0) + 1;
+    setAttempts((current) => ({ ...current, [challenge.id]: attempt }));
+    if (!passed) setFailures((current) => ({ ...current, [challenge.id]: (current[challenge.id] ?? 0) + 1 }));
+    api.recordAttempt(challenge.id, passed, attempt);
+  }
+
   async function work(kind: 'run' | 'check') {
     if (working.current) return;
     working.current = true;
@@ -129,15 +154,15 @@ export function ChallengesStep({ lesson, language }: Props) {
         if (stillShown()) setRun(view);
       } else if (javascript) {
         const result = await runner.check(submitted, challenge.checks ?? []);
-        if (result.passed) markSolved(challenge, submitted);
+        afterCheck(challenge, submitted, result.passed);
         if (stillShown()) setCheck({ kind: 'js', check: result, message: phpCheckMessage(result) });
       } else if (language === 'sql') {
         const result = await api.checkSql(challenge.id, submitted);
-        if (result.passed) markSolved(challenge, submitted);
+        afterCheck(challenge, submitted, result.passed);
         if (stillShown()) setCheck({ kind: 'sql', check: result, message: result.message });
       } else {
         const result = await api.checkPhp(challenge.id, submitted);
-        if (result.passed) markSolved(challenge, submitted);
+        afterCheck(challenge, submitted, result.passed);
         if (stillShown()) setCheck({ kind: 'php', check: result, message: phpCheckMessage(result) });
       }
     } catch (e) {
@@ -182,12 +207,47 @@ export function ChallengesStep({ lesson, language }: Props) {
       {active.order_matters ? (
         <Text style={[styles.note, { color: theme.muted }]}>Row order is checked for this challenge.</Text>
       ) : null}
-      {active.hint ? (
-        <View style={styles.hint}>
-          <Button variant="quiet" title={showHint ? 'Hide hint' : 'Show a hint'} onPress={() => setShowHint(!showHint)} />
-          {showHint ? <Text style={[styles.text, { color: theme.ink }]}>{active.hint}</Text> : null}
-        </View>
-      ) : null}
+      <View style={styles.hint}>
+        {hintAvailable ? (
+          <Button
+            variant="quiet"
+            title={showHint ? 'Hide hint' : 'Show a hint'}
+            onPress={() => {
+              if (!showHint) api.recordHint(active.id);
+              setShowHint(!showHint);
+            }}
+          />
+        ) : null}
+        {hintAvailable && showHint ? <Text style={[styles.text, { color: theme.ink }]}>{active.hint}</Text> : null}
+        {helpNote ? <Text style={[styles.note, { color: theme.muted }]}>{helpNote}</Text> : null}
+        {solutionAvailable && solutions[active.id] === undefined ? (
+          <Button
+            variant="quiet"
+            title="Show the solution"
+            onPress={() =>
+              api.solution(active.id).then(
+                (solution) => setSolutions((current) => ({ ...current, [active.id]: solution })),
+                (error) => setFailure(error instanceof Error ? error.message : String(error)),
+              )
+            }
+          />
+        ) : null}
+        {solutions[active.id] !== undefined ? (
+          <View style={styles.solution}>
+            <Text style={[styles.text, { color: theme.ink }]}>
+              One way to solve it. Read it through, then try writing it yourself; it sticks better than copying.
+            </Text>
+            <CodeBlock code={solutions[active.id]} language={language} />
+            <Button
+              title="Put it in the editor"
+              onPress={() => {
+                save(solutions[active.id]);
+                load(solutions[active.id]);
+              }}
+            />
+          </View>
+        ) : null}
+      </View>
 
       <View onLayout={(event) => (editorY.current = event.nativeEvent.layout.y)}>
         <CodeEditor
@@ -267,6 +327,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '800' },
   note: { fontSize: 14 },
   hint: { gap: 6, alignItems: 'flex-start' },
+  solution: { gap: 8, alignSelf: 'stretch' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   result: { gap: 12 },
   verdict: { borderWidth: 1, borderRadius: 8, padding: 12, gap: 10 },

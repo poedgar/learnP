@@ -11,8 +11,16 @@ class CourseController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
+        // Each lesson's id and counts are enough for the apps to show progress per course.
         return CourseResource::collection(
-            Course::query()->withCount('lessons')->orderBy('position')->get()
+            Course::query()
+                ->withCount('lessons')
+                ->with(['lessons' => fn ($query) => $query
+                    ->select(['id', 'course_id', 'slug', 'title', 'position'])
+                    ->withCount(['quizQuestions', 'challenges']),
+                ])
+                ->orderBy('position')
+                ->get()
         );
     }
 

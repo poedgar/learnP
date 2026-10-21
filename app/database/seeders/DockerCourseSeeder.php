@@ -10,6 +10,7 @@ class DockerCourseSeeder extends ContentCourseSeeder
             'slug' => 'docker',
             'title' => 'Docker',
             'language' => 'php',
+            'label' => 'Docker',
             'description' => 'Package and run apps in containers: images and containers, Dockerfiles, layer caching, small and safe images, volumes, networks and configuration, and Docker Compose. You write the files; PHP checks them.',
             'position' => 14,
         ];

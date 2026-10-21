@@ -4,6 +4,10 @@ import { phpLanguage } from '@codemirror/lang-php';
 import { javascriptLanguage, typescriptLanguage } from '@codemirror/lang-javascript';
 import { htmlLanguage } from '@codemirror/lang-html';
 import { cssLanguage } from '@codemirror/lang-css';
+import { StreamLanguage } from '@codemirror/language';
+import { shell } from '@codemirror/legacy-modes/mode/shell';
+import { dockerFile } from '@codemirror/legacy-modes/mode/dockerfile';
+import { yaml } from '@codemirror/legacy-modes/mode/yaml';
 
 const parsers = {
     sql: () => SQLite.language.parser,
@@ -17,6 +21,17 @@ const parsers = {
 
 // Real framework code in lessons that can't run in the sandbox: highlighted as PHP, never runnable.
 parsers.laravel = parsers.php;
+
+// Read-only blocks in other languages that lessons show (Blade, shell commands, Docker files).
+const streamParser = (mode) => {
+    const parser = StreamLanguage.define(mode).parser;
+    return () => parser;
+};
+parsers.blade = parsers.html;
+parsers.bash = streamParser(shell);
+parsers.shell = parsers.bash;
+parsers.dockerfile = streamParser(dockerFile);
+parsers.yaml = streamParser(yaml);
 
 function escapeHtml(text) {
     return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

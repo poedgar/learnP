@@ -1,6 +1,8 @@
 import { cleanup } from '@testing-library/react-native';
+import { api } from './src/api/client';
 import { useAuthStore } from './src/auth/store';
 import { useKeyBarStore } from './src/editor/keyBarStore';
+import { useActivityStore } from './src/progress/activity';
 import { useProgressStore } from './src/progress/store';
 import { useReviewStore } from './src/review/store';
 
@@ -57,10 +59,19 @@ jest.mock('expo-router', () => ({
 
 process.env.EXPO_PUBLIC_API_URL = 'http://api.test';
 
+// Learning paths are optional on screen, and statistics are fire-and-forget; tests that care mock them themselves.
+beforeEach(() => {
+  jest.spyOn(api, 'tracks').mockResolvedValue([]);
+  // Anonymous learning statistics never leave a test.
+  jest.spyOn(api, 'recordAttempt').mockResolvedValue(null);
+  jest.spyOn(api, 'recordHint').mockResolvedValue(null);
+});
+
 afterEach(() => {
   cleanup();
   useProgressStore.setState({ lessons: {} });
   useReviewStore.setState({ cards: {} });
   useKeyBarStore.setState({ active: null });
   useAuthStore.setState({ user: null, ready: false });
+  useActivityStore.setState({ recent: null, days: [] });
 });

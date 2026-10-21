@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { api } from '../api/client';
 import { LoadState } from '../components/LoadState';
@@ -9,6 +9,7 @@ import { LearnStep } from '../components/lesson/LearnStep';
 import { QuizStep } from '../components/lesson/QuizStep';
 import { SandboxStep } from '../components/lesson/SandboxStep';
 import { StepSwitcher, type Step } from '../components/lesson/StepSwitcher';
+import { recordVisit } from '../progress/activity';
 import { updateLesson, useLessonProgress } from '../progress/store';
 import { lessonSummary } from '../progress/summary';
 
@@ -33,6 +34,13 @@ export function LessonScreen({ courseSlug, lessonSlug, step: stepParam }: Props)
   }
   const [sandboxRequest, setSandboxRequest] = useState<{ code: string; key: number } | null>(null);
   const lesson = query.data?.data;
+
+  // For the home screen's "continue where you left off" and the day streak.
+  useEffect(() => {
+    if (lesson) {
+      recordVisit({ course: lesson.course.slug, courseTitle: lesson.course.title, lesson: lesson.slug, lessonTitle: lesson.title });
+    }
+  }, [lesson]);
   const progress = useLessonProgress(lesson?.id ?? -1);
 
   const goTo = (next: Step) => router.setParams({ step: next });

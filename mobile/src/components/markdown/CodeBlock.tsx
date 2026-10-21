@@ -3,11 +3,17 @@ import 'prismjs/components/prism-markup-templating';
 import 'prismjs/components/prism-php';
 import 'prismjs/components/prism-sql';
 import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-yaml';
+import 'prismjs/components/prism-docker';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { monoFont, useTheme, type SyntaxColor } from '../../theme';
 
 // Real framework code in lessons that can't run in the sandbox: highlighted as PHP, never runnable.
 Prism.languages.laravel = Prism.languages.php;
+// Read-only blocks in other languages that lessons show.
+Prism.languages.blade = Prism.languages.markup;
+Prism.languages.shell = Prism.languages.bash;
 
 /** Prism token types → theme syntax colours. Anything unlisted inherits its parent's colour. */
 const COLORS: Record<string, SyntaxColor> = {
@@ -24,6 +30,13 @@ const COLORS: Record<string, SyntaxColor> = {
   variable: 'variable',
   property: 'variable',
   'class-name': 'type',
+  // Markup (HTML, Blade), YAML and Dockerfiles.
+  tag: 'keyword',
+  'attr-name': 'variable',
+  'attr-value': 'string',
+  key: 'variable',
+  atrule: 'keyword',
+  parameter: 'variable',
 };
 
 export function highlightTokens(code: string, language: string): { text: string; color: SyntaxColor }[] {

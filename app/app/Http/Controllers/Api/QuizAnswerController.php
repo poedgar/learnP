@@ -15,8 +15,11 @@ class QuizAnswerController extends Controller
             'option' => ['required', 'integer', 'min:0', 'max:'.(count($question->options) - 1)],
         ]);
 
+        $correct = (int) $validated['option'] === $question->correct_option;
+        LearningEventController::recordQuizAnswer($question, $correct);
+
         return response()->json([
-            'correct' => (int) $validated['option'] === $question->correct_option,
+            'correct' => $correct,
             'correct_option' => $question->correct_option,
             'explanation' => $question->explanation,
         ]);

@@ -20,6 +20,23 @@ export interface LessonSummary {
   started: boolean;
 }
 
+/** How much of a course is done, from its lessons' ids and counts. Same rules as courseProgress() on the web. */
+export function courseProgress(
+  lessons: LessonCounts[] | undefined,
+  progress: Record<number, LessonProgress>,
+): { completed: number; total: number; started: boolean; complete: boolean } {
+  const list = lessons ?? [];
+  const summaries = list.map((lesson) => lessonSummary(lesson, progress[lesson.id]));
+  const completed = summaries.filter((s) => s.complete).length;
+
+  return {
+    completed,
+    total: list.length,
+    started: summaries.some((s) => s.started),
+    complete: list.length > 0 && completed === list.length,
+  };
+}
+
 export function lessonSummary(lesson: LessonCounts, progress: LessonProgress | undefined): LessonSummary {
   const quiz = Object.values(progress?.quiz ?? {});
   const quizAnswered = quiz.length;

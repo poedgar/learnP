@@ -66,4 +66,11 @@ export const api = {
     resetPassword: (details) => request('POST', 'reset-password', details),
     resendVerification: () => request('POST', 'email/verification-notification'),
     deleteAccount: (confirmation) => request('DELETE', 'account', confirmation),
+    tracks: () => request('GET', 'tracks').then((r) => r.data),
+    search: (query) => request('GET', `search?q=${encodeURIComponent(query)}`).then((r) => r.data),
+    solution: (challengeId) => request('GET', `challenges/${challengeId}/solution`).then((r) => r.solution),
+    // Anonymous learning statistics; losing one doesn't matter, so failures are ignored.
+    recordAttempt: (challengeId, passed, attempt) =>
+        request('POST', `challenges/${challengeId}/attempts`, { passed, attempt }).catch(() => {}),
+    recordHint: (challengeId) => request('POST', `challenges/${challengeId}/hint-views`).catch(() => {}),
 };

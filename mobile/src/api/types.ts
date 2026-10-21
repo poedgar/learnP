@@ -22,7 +22,25 @@ export interface CourseSummary {
   title: string;
   description: string;
   language: Language;
+  /** Shown instead of the language when set, e.g. "Docker" for a course whose sandbox is PHP. */
+  label?: string | null;
   lessons_count?: number;
+  /** In the course list: each lesson's id and counts, enough to show progress. */
+  lessons?: { id: number; slug: string; title: string; position: number; quiz_questions_count: number; challenges_count: number }[];
+}
+
+/** A learning path: course slugs in the order to take them. */
+export interface Track {
+  slug: string;
+  title: string;
+  description: string;
+  courses: string[];
+}
+
+export interface SearchResult {
+  course: { slug: string; title: string; position: number };
+  lesson: { slug: string; title: string; position: number };
+  snippet: string;
 }
 
 export interface LessonSummary {

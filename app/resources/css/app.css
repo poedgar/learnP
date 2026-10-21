@@ -172,6 +172,11 @@ kbd {
     color: #9cc3ff;
 }
 
+.tok-atom,
+.tok-propertyName {
+    color: #9a4d00;
+}
+
 .tok-meta {
     color: #8492b3;
 }
@@ -276,4 +281,11 @@ kbd {
 .btn-danger:hover {
     background: var(--bad);
     filter: brightness(0.92);
+}
+
+@media print {
+    .site-header,
+    .skip-link {
+        display: none;
+    }
 }

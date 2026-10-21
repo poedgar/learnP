@@ -54,6 +54,15 @@ export function clearProgress() {
     }
 }
 
+/** How much of a course is done, from its lessons' ids and counts (as /api/courses lists them). */
+export function courseProgress(course) {
+    const lessons = course.lessons ?? [];
+    const completed = lessons.filter((lesson) => lessonSummary(lesson).complete).length;
+    const started = lessons.some((lesson) => lessonSummary(lesson).started);
+
+    return { completed, total: lessons.length, started, complete: lessons.length > 0 && completed === lessons.length };
+}
+
 /** Summary used by lesson lists and the step tabs. */
 export function lessonSummary(lesson) {
     const progress = state.lessons[lesson.id];

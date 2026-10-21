@@ -20,6 +20,7 @@ class CourseResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'language' => $this->language,
+            'label' => $this->label,
             'lessons_count' => $this->whenCounted('lessons'),
             'lessons' => LessonResource::collection($this->whenLoaded('lessons')),
         ];

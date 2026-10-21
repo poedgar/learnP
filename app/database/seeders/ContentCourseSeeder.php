@@ -15,7 +15,7 @@ abstract class ContentCourseSeeder extends Seeder
     use SyncsLessonContent;
 
     /**
-     * @return array{slug: string, title: string, language: string, description: string, position: int}
+     * @return array{slug: string, title: string, language: string, label?: string, description: string, position: int}
      */
     abstract protected function course(): array;
 

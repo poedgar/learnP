@@ -89,10 +89,14 @@ test('when the PHP sandbox is down the message shows and the code stays', async 
   expect(screen.getByLabelText('Code for challenge: Your first class').props.value).toBe('<?php class Book {}');
 });
 
-test('the hint toggles and Start over restores the starter code', async () => {
+test('the hint toggles after a failed check, and Start over restores the starter code', async () => {
+  jest.spyOn(api, 'checkSql').mockResolvedValue({ ...passingSql, passed: false, message: 'Not quite.' });
+  jest.spyOn(api, 'recordAttempt').mockResolvedValue(null);
+  jest.spyOn(api, 'recordHint').mockResolvedValue(null);
   await render(<ChallengesStep lesson={sqlLesson.data} language="sql" />);
 
-  await fireEvent.press(screen.getByRole('button', { name: 'Show a hint' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Check answer' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Show a hint' }));
   expect(screen.getByText('Put the two column names after SELECT.')).toBeTruthy();
 
   await fireEvent.changeText(screen.getByLabelText('Code for challenge: Titles and authors'), 'nope');
@@ -123,4 +127,41 @@ test('a lesson without challenges says so', async () => {
   await render(<ChallengesStep lesson={{ ...sqlLesson.data, challenges: [] }} language="sql" />);
 
   expect(screen.getByText('This lesson has no challenges yet.')).toBeTruthy();
+});
+
+const failingSql = { ...passingSql, passed: false, message: 'Not quite.' };
+
+test('help arrives in steps: a hint after one failed check, the solution after three', async () => {
+  jest.spyOn(api, 'checkSql').mockResolvedValue(failingSql);
+  const attempt = jest.spyOn(api, 'recordAttempt').mockResolvedValue(null);
+  const hintView = jest.spyOn(api, 'recordHint').mockResolvedValue(null);
+  jest.spyOn(api, 'solution').mockResolvedValue('SELECT title, author FROM books;');
+  await render(<ChallengesStep lesson={sqlLesson.data} language="sql" />);
+
+  expect(screen.queryByRole('button', { name: 'Show a hint' })).toBeNull();
+  expect(screen.getByText('Stuck? Check your answer: a hint appears after your first try.')).toBeTruthy();
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Check answer' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Show a hint' }));
+  expect(hintView).toHaveBeenCalledWith(21);
+  expect(screen.getByText('The solution can be shown after 2 more tries.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Show the solution' })).toBeNull();
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Check answer' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Check answer' }));
+  expect(attempt.mock.calls.map(([id, passed, n]) => [id, passed, n])).toEqual([[21, false, 1], [21, false, 2], [21, false, 3]]);
+
+  await fireEvent.press(await screen.findByRole('button', { name: 'Show the solution' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Put it in the editor' }));
+  expect(useProgressStore.getState().lessons[1].challenges[21].code).toBe('SELECT title, author FROM books;');
+});
+
+test('a first-try pass is recorded as attempt 1', async () => {
+  jest.spyOn(api, 'checkSql').mockResolvedValue(passingSql);
+  const attempt = jest.spyOn(api, 'recordAttempt').mockResolvedValue(null);
+  await render(<ChallengesStep lesson={sqlLesson.data} language="sql" />);
+
+  await fireEvent.press(screen.getByRole('button', { name: 'Check answer' }));
+
+  expect(attempt).toHaveBeenCalledWith(21, true, 1);
 });

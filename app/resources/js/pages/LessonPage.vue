@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../api';
+import { recordVisit } from '../activity';
 import { lessonProgress, lessonSummary } from '../progress';
 import TheoryStep from '../components/lesson/TheoryStep.vue';
 import SqlSandboxStep from '../components/lesson/SqlSandboxStep.vue';
@@ -45,6 +46,7 @@ async function load() {
     try {
         data.value = await api.lesson(props.course, props.lesson);
         document.title = `${data.value.data.title}: ${data.value.data.course.title} | learnP`;
+        recordVisit(data.value.data.course, data.value.data);
     } catch (e) {
         error.value = e;
     }

@@ -40,6 +40,7 @@ async function onSignOut() {
             <RouterLink to="/" class="wordmark">learn<span>P</span></RouterLink>
             <nav aria-label="Main">
                 <RouterLink to="/">Courses</RouterLink>
+                <RouterLink :to="{ name: 'search' }" aria-label="Search the lessons">Search</RouterLink>
                 <RouterLink to="/review">
                     Review<span v-if="dueCount" class="due-count" :aria-label="`, ${dueCount} due`">{{ dueCount }}</span>
                 </RouterLink>

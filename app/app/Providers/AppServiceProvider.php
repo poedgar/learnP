@@ -33,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Learning events are small and frequent, but no one checks a challenge 120 times a minute.
+        RateLimiter::for('events', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
+
         // Each sandbox run spawns a PHP process, so keep bursts in check.
         RateLimiter::for('sandbox', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
 

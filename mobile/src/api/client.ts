@@ -10,7 +10,9 @@ import type {
   QuizAnswer,
   ReviewItemsResponse,
   SqlCheck,
+  SearchResult,
   SqlRun,
+  Track,
   User,
 } from './types';
 
@@ -95,4 +97,11 @@ export const api = {
   exportAccount: () => request<Record<string, unknown>>('GET', 'account/export'),
   deleteAccount: (confirmation: { password: string } | { confirmation: string }) =>
     request<null>('DELETE', 'account', confirmation),
+  tracks: () => request<{ data: Track[] }>('GET', 'tracks').then((r) => r.data),
+  search: (query: string) => request<{ data: SearchResult[] }>('GET', `search?q=${segment(query)}`).then((r) => r.data),
+  solution: (challengeId: number) => request<{ solution: string }>('GET', `challenges/${challengeId}/solution`).then((r) => r.solution),
+  // Anonymous learning statistics; losing one doesn't matter, so failures are ignored.
+  recordAttempt: (challengeId: number, passed: boolean, attempt: number) =>
+    request<null>('POST', `challenges/${challengeId}/attempts`, { passed, attempt }).catch(() => null),
+  recordHint: (challengeId: number) => request<null>('POST', `challenges/${challengeId}/hint-views`).catch(() => null),
 };
