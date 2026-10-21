@@ -9,43 +9,26 @@ use App\Sandbox\SqlSandbox;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Tests\Concerns\ReadsContentCatalog;
 use Tests\TestCase;
 
 class SqlLessonContentTest extends TestCase
 {
-    use RefreshDatabase;
+    use ReadsContentCatalog, RefreshDatabase;
 
     protected $seeder = DatabaseSeeder::class;
 
     protected $seed = true;
 
-    /** Each SQL course's lessons, in order, with the dataset each one runs on. */
-    private const COURSES = [
-        'sql' => [
-            ['your-first-queries', 'bookstore'],
-            ['finding-the-rows-you-want', 'bookshop'],
-            ['summarising-data', 'bookshop'],
-            ['combining-tables', 'bookshop'],
-            ['queries-inside-queries', 'bookshop'],
-            ['changing-data', 'bookshop'],
-            ['designing-tables', 'bookshop'],
-            ['shaping-values', 'bookshop'],
-            ['naming-steps-with-with', 'bookshop'],
-            ['window-functions', 'bookshop'],
-        ],
-        'advanced-sql' => [
-            ['stacking-and-pairing', 'bookshop_plus'],
-            ['the-truth-about-null', 'bookshop_plus'],
-            ['trees-and-hierarchies', 'bookshop_plus'],
-            ['everyday-query-patterns', 'bookshop_plus'],
-            ['upsert-and-returning', 'bookshop_plus'],
-            ['working-with-json', 'bookshop_plus'],
-            ['designing-a-schema', 'bookshop_plus'],
-            ['indexes-and-query-plans', 'bookshop_plus'],
-            ['views-triggers-and-generated-columns', 'bookshop_plus'],
-            ['full-text-search', 'bookshop_plus'],
-        ],
-    ];
+    /**
+     * This test's courses and their lessons in order, from database/content.
+     *
+     * @return array<string, list<string>>
+     */
+    private function courses(): array
+    {
+        return $this->catalogFor('sql');
+    }
 
     /**
      * The lessons of one SQL course, or of every SQL course.
@@ -54,7 +37,7 @@ class SqlLessonContentTest extends TestCase
      */
     private function lessons(?string $course = null): Collection
     {
-        return Lesson::whereIn('course_id', Course::whereIn('slug', $course === null ? array_keys(self::COURSES) : [$course])->select('id'))
+        return Lesson::whereIn('course_id', Course::whereIn('slug', $course === null ? array_keys($this->courses()) : [$course])->select('id'))
             ->orderBy('course_id')->orderBy('position')
             ->withCount(['quizQuestions', 'challenges'])
             ->get();
@@ -62,12 +45,16 @@ class SqlLessonContentTest extends TestCase
 
     public function test_each_course_has_its_lessons_in_order(): void
     {
-        foreach (self::COURSES as $course => $expected) {
+        $this->assertNotEmpty($this->courses());
+
+        foreach ($this->courses() as $course => $expected) {
             $lessons = $this->lessons($course);
 
-            $this->assertSame($expected, $lessons->map(fn (Lesson $lesson) => [$lesson->slug, $lesson->dataset])->all());
+            $this->assertSame($expected, $lessons->pluck('slug')->all());
 
             foreach ($lessons as $lesson) {
+                // Every SQL lesson runs on one of the datasets in database/datasets.
+                $this->assertFileExists(database_path("datasets/{$lesson->dataset}.sql"), "{$lesson->slug} dataset");
                 $this->assertSame(8, $lesson->quiz_questions_count, "{$lesson->slug} quiz questions");
                 $this->assertSame(6, $lesson->challenges_count, "{$lesson->slug} challenges");
             }

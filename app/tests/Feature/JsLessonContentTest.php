@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use Tests\Concerns\ReadsContentCatalog;
 use Tests\TestCase;
 
 /**
@@ -20,63 +21,11 @@ use Tests\TestCase;
  */
 class JsLessonContentTest extends TestCase
 {
-    use RefreshDatabase;
+    use ReadsContentCatalog, RefreshDatabase;
 
     protected $seeder = DatabaseSeeder::class;
 
     protected $seed = true;
-
-    private const COURSES = [
-        'js-basics' => [
-            'values-and-variables',
-            'comparisons-and-logic',
-            'control-flow',
-            'functions',
-            'arrays',
-            'objects-and-json',
-            'classes',
-            'errors-maps-and-sets',
-        ],
-        'js-async' => [
-            'callbacks-and-the-event-loop',
-            'promises',
-            'async-and-await',
-            'combining-promises',
-            'async-patterns',
-        ],
-        'js-dom' => [
-            'finding-things-on-the-page',
-            'changing-the-page',
-            'events',
-            'forms',
-            'building-a-small-app',
-        ],
-        'typescript' => [
-            'types-and-inference',
-            'object-types',
-            'unions-and-narrowing',
-            'functions-and-generics',
-            'classes-and-utility-types',
-            'type-level-tools',
-        ],
-        'regex' => [
-            'patterns-and-character-classes',
-            'quantifiers-and-anchors',
-            'groups-and-alternation',
-            'searching-and-replacing',
-            'lookarounds-and-unicode',
-            'regex-in-practice',
-        ],
-        'html-css' => [
-            'structure-and-meaning',
-            'lists-tables-and-figures',
-            'forms',
-            'selectors-and-the-cascade',
-            'the-box-model',
-            'flexbox',
-            'grid-and-responsive-design',
-        ],
-    ];
 
     /** The verifier's report, shared by the tests below: running it takes a few minutes. */
     private static ?array $report = null;
@@ -84,9 +33,19 @@ class JsLessonContentTest extends TestCase
     /**
      * @return Collection<int, Lesson>
      */
+    /**
+     * This test's courses and their lessons in order, from database/content.
+     *
+     * @return array<string, list<string>>
+     */
+    private function courses(): array
+    {
+        return $this->catalogFor('javascript', 'typescript', 'html');
+    }
+
     private function lessons(?string $course = null): Collection
     {
-        return Lesson::whereIn('course_id', Course::whereIn('slug', $course === null ? array_keys(self::COURSES) : [$course])->select('id'))
+        return Lesson::whereIn('course_id', Course::whereIn('slug', $course === null ? array_keys($this->courses()) : [$course])->select('id'))
             ->orderBy('course_id')->orderBy('position')
             ->with(['course', 'quizQuestions', 'challenges'])
             ->get();
@@ -139,7 +98,9 @@ class JsLessonContentTest extends TestCase
 
     public function test_each_course_has_its_lessons_in_order(): void
     {
-        foreach (self::COURSES as $course => $expected) {
+        $this->assertNotEmpty($this->courses());
+
+        foreach ($this->courses() as $course => $expected) {
             $lessons = $this->lessons($course);
 
             $this->assertSame($expected, $lessons->pluck('slug')->all());

@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  app:
+    name: Laravel app and lesson content
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          npm ci --ignore-scripts
+
+      - name: Prepare the environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+
+      - name: Check code style
+        run: vendor/bin/pint --test
+
+      - name: Build the front end
+        run: npm run build
+
+      - name: Install Chromium for the browser checks
+        run: npx playwright@1.63.0 install --with-deps chromium-headless-shell
+
+      - name: Run the tests
+        run: php artisan test
+
+      # PHPUnit runs lesson code with this machine's PHP; learners run it in the browser's PHP 8.4.
+      - name: Run every PHP lesson in the browser's PHP
+        run: |
+          php artisan migrate --seed --force
+          php artisan content:export "$RUNNER_TEMP/lessons.json"
+          npm run verify:php -- "$RUNNER_TEMP/lessons.json"
+
+  runner:
+    name: PHP runner
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: runner
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run the tests
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test
+
+  mobile:
+    name: Mobile app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test -- --ci

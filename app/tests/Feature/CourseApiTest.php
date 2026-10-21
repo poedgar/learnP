@@ -7,48 +7,37 @@ use App\Models\Course;
 use App\Models\Lesson;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ReadsContentCatalog;
 use Tests\TestCase;
 
 class CourseApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use ReadsContentCatalog, RefreshDatabase;
 
     protected $seeder = DatabaseSeeder::class;
 
     protected $seed = true;
 
-    public function test_courses_are_listed_with_lesson_counts(): void
+    public function test_courses_are_listed_in_order_with_lesson_counts(): void
     {
-        $courses = [
-            ['sql', 'sql', 10],
-            ['php-basics', 'php', 11],
-            ['php-oop', 'php', 7],
-            ['advanced-sql', 'sql', 10],
-            ['php-oop-advanced', 'php', 10],
-            ['php-design-patterns', 'php', 9],
-            ['php-algorithms', 'php', 9],
-            ['functional-php', 'php', 4],
-            ['php-testing', 'php', 5],
-            ['php-clean-code', 'php', 5],
-            ['php-security', 'php', 8],
-            ['laravel-basics', 'php', 8],
-            ['laravel-advanced', 'php', 10],
-            ['docker', 'php', 6],
-            ['html-css', 'html', 7],
-            ['js-basics', 'javascript', 8],
-            ['js-async', 'javascript', 5],
-            ['js-dom', 'javascript', 5],
-            ['typescript', 'typescript', 6],
-            ['regex', 'javascript', 6],
-        ];
+        $courses = Course::orderBy('position')->withCount('lessons')->get();
+        $catalog = $this->contentCatalog();
 
-        $response = $this->getJson('/api/courses')->assertOk()->assertJsonCount(count($courses), 'data');
+        $response = $this->getJson('/api/courses')->assertOk()->assertJsonCount(count($catalog), 'data');
 
-        foreach ($courses as $index => [$slug, $language, $lessons]) {
-            $response->assertJsonPath("data.$index.slug", $slug)
-                ->assertJsonPath("data.$index.language", $language)
-                ->assertJsonPath("data.$index.lessons_count", $lessons);
+        foreach ($courses as $index => $course) {
+            $response->assertJsonPath("data.$index.slug", $course->slug)
+                ->assertJsonPath("data.$index.language", $course->language)
+                ->assertJsonPath("data.$index.lessons_count", count($catalog[$course->slug] ?? []));
         }
+    }
+
+    public function test_every_content_folder_is_a_course_with_a_place_of_its_own(): void
+    {
+        $this->assertEqualsCanonicalizing(array_keys($this->contentCatalog()), Course::pluck('slug')->all());
+
+        $positions = Course::orderBy('position')->pluck('position')->all();
+        $this->assertSame(range(1, count($positions)), $positions, 'Course positions should run 1, 2, 3... without gaps or repeats.');
     }
 
     public function test_course_lists_its_lessons_without_their_content(): void

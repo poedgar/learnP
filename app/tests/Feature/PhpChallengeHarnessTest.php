@@ -8,6 +8,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
+use Tests\Concerns\RunsPhpScripts;
 use Tests\TestCase;
 
 /**
@@ -16,7 +17,7 @@ use Tests\TestCase;
  */
 class PhpChallengeHarnessTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, RunsPhpScripts;
 
     protected $seeder = DatabaseSeeder::class;
 
@@ -57,14 +58,43 @@ class PhpChallengeHarnessTest extends TestCase
         return json_decode($report, true);
     }
 
+    /**
+     * Runs each code through the harness with its challenge's checks, in parallel.
+     *
+     * @param  iterable<Challenge>  $challenges
+     * @return array<int, array{challenge: Challenge, report: ?array}>
+     */
+    private function runHarnessFor(iterable $challenges, callable $code): array
+    {
+        $harness = File::get(resource_path('php/check-harness.php'));
+        $scripts = [];
+        $byKey = [];
+        foreach ($challenges as $challenge) {
+            $scripts[$challenge->id] = [
+                'files' => ['harness.php' => $harness, 'main.php' => $code($challenge), 'checks.json' => json_encode($challenge->checks)],
+                'entry' => 'harness.php',
+            ];
+            $byKey[$challenge->id] = $challenge;
+        }
+
+        $results = [];
+        foreach ($this->runPhpScripts($scripts) as $id => $result) {
+            [, $report] = explode("\n@@LEARNP_REPORT@@\n", $result['output'], 2) + [1 => null];
+            $this->assertNotNull($report, "{$byKey[$id]->title}: the harness printed no report: {$result['output']}{$result['errors']}");
+            $results[$id] = ['challenge' => $byKey[$id], 'report' => json_decode($report, true)];
+        }
+
+        return $results;
+    }
+
     public function test_every_php_challenge_solution_passes_all_its_checks(): void
     {
+        // Every PHP challenge is checked by code; none may be missing its checks.
+        $this->assertFalse(Challenge::whereNull('checks')->whereRelation('lesson.course', 'language', 'php')->exists());
         $challenges = Challenge::whereNotNull('checks')->whereRelation('lesson.course', 'language', 'php')->get();
-        $this->assertCount(551, $challenges);
+        $this->assertNotEmpty($challenges);
 
-        foreach ($challenges as $challenge) {
-            $report = $this->runHarness($challenge->solution, $challenge->checks);
-
+        foreach ($this->runHarnessFor($challenges, fn (Challenge $c) => $c->solution) as ['challenge' => $challenge, 'report' => $report]) {
             $this->assertTrue($report['loaded'], "{$challenge->title}: {$report['error']}");
             foreach ($report['checks'] as $check) {
                 $this->assertTrue($check['passed'], "{$challenge->title} / {$check['label']}: {$check['message']}");
@@ -74,8 +104,9 @@ class PhpChallengeHarnessTest extends TestCase
 
     public function test_every_php_challenge_starter_fails_at_least_one_check(): void
     {
-        foreach (Challenge::whereNotNull('checks')->whereRelation('lesson.course', 'language', 'php')->get() as $challenge) {
-            $report = $this->runHarness($challenge->starter_code, $challenge->checks);
+        $challenges = Challenge::whereNotNull('checks')->whereRelation('lesson.course', 'language', 'php')->get();
+
+        foreach ($this->runHarnessFor($challenges, fn (Challenge $c) => $c->starter_code) as ['challenge' => $challenge, 'report' => $report]) {
 
             $this->assertContains(false, array_column($report['checks'], 'passed'), "{$challenge->title} passes without any work.");
         }
@@ -88,12 +119,13 @@ class PhpChallengeHarnessTest extends TestCase
             ->get();
         $this->assertNotEmpty($questions);
 
-        foreach ($questions as $question) {
-            File::put($this->directory.'/snippet.php', "<?php\n\n".$question->code);
-            $output = Process::path($this->directory)->run([PHP_BINARY, '-d', 'display_errors=1', 'snippet.php'])->output();
+        $outputs = $this->runPhpScripts($questions->mapWithKeys(fn (QuizQuestion $q) => [
+            $q->id => ['files' => ['snippet.php' => "<?php\n\n".$q->code], 'entry' => 'snippet.php'],
+        ])->all());
 
+        foreach ($questions as $question) {
             // Some snippets end in an error on purpose; none may depend on code from another question.
-            $this->assertDoesNotMatchRegularExpression('/not found|Undefined (variable|function)/', $output, $question->question);
+            $this->assertDoesNotMatchRegularExpression('/not found|Undefined (variable|function)/', $outputs[$question->id]['output'], $question->question);
         }
     }
 

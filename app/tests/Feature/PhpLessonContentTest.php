@@ -7,137 +7,27 @@ use App\Models\Lesson;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Process;
+use Tests\Concerns\ReadsContentCatalog;
+use Tests\Concerns\RunsPhpScripts;
 use Tests\TestCase;
 
 class PhpLessonContentTest extends TestCase
 {
-    use RefreshDatabase;
+    use ReadsContentCatalog, RefreshDatabase, RunsPhpScripts;
 
     protected $seeder = DatabaseSeeder::class;
 
     protected $seed = true;
 
-    /** Each PHP course's lessons, in order. */
-    private const COURSES = [
-        'php-basics' => [
-            'values-and-variables',
-            'strings-and-formatting',
-            'comparisons-and-type-juggling',
-            'control-flow',
-            'arrays',
-            'array-functions',
-            'functions',
-            'dates',
-            'types-and-null-safety',
-            'regular-expressions',
-            'handling-errors',
-        ],
-        'php-oop' => [
-            'classes-and-objects',
-            'inheritance',
-            'interfaces-and-abstract-classes',
-            'static-members-constants-and-enums',
-            'exceptions',
-            'traits-and-readonly-properties',
-            'putting-objects-together',
-        ],
-        'php-oop-advanced' => [
-            'magic-methods',
-            'object-identity',
-            'closures-and-callables',
-            'late-static-binding-and-fluent-interfaces',
-            'iterators-and-generators',
-            'objects-that-act-like-arrays',
-            'property-hooks-and-asymmetric-visibility',
-            'attributes-and-reflection',
-            'namespaces-and-autoloading',
-            'solid-and-a-tiny-container',
-        ],
-        'php-design-patterns' => [
-            'patterns-and-factories',
-            'builder-and-singleton',
-            'adapter-and-facade',
-            'decorator-and-proxy',
-            'composite',
-            'strategy-and-template-method',
-            'observer-and-command',
-            'state-and-chain-of-responsibility',
-            'visitor-and-choosing-patterns',
-        ],
-        'php-algorithms' => [
-            'big-o-and-searching',
-            'sorting',
-            'recursion',
-            'stacks-and-queues',
-            'linked-lists',
-            'hash-maps-and-sets',
-            'trees-and-heaps',
-            'graphs',
-            'dynamic-programming-and-techniques',
-        ],
-        'functional-php' => [
-            'pure-functions',
-            'higher-order-functions',
-            'currying-and-partial-application',
-            'pipelines-and-lazy-collections',
-        ],
-        'php-testing' => [
-            'writing-assertions',
-            'a-tiny-test-runner',
-            'writing-good-tests',
-            'test-doubles',
-            'test-driven-development',
-        ],
-        'php-clean-code' => [
-            'names-and-functions',
-            'smells-and-refactoring',
-            'simplifying-conditionals',
-            'better-data',
-            'working-with-legacy-code',
-        ],
-        'php-security' => [
-            'untrusted-input',
-            'xss-and-escaping',
-            'sql-injection',
-            'passwords',
-            'sessions-cookies-and-csrf',
-            'tokens-and-signatures',
-            'files-and-paths',
-            'authorization-and-mass-assignment',
-        ],
-        'laravel-basics' => [
-            'routes',
-            'controllers-and-responses',
-            'blade-templates',
-            'migrations',
-            'eloquent-models',
-            'relationships',
-            'forms-and-validation',
-            'authentication-and-authorization',
-        ],
-        'docker' => [
-            'images-and-containers',
-            'writing-a-dockerfile',
-            'layers-and-caching',
-            'small-and-safe-images',
-            'volumes-networks-and-configuration',
-            'docker-compose',
-        ],
-        'laravel-advanced' => [
-            'the-service-container',
-            'service-providers',
-            'facades',
-            'the-middleware-pipeline',
-            'routing-and-model-binding',
-            'collections-and-macros',
-            'inside-eloquent',
-            'events-and-observers',
-            'queues-and-jobs',
-            'validation-and-form-requests',
-        ],
-    ];
+    /**
+     * This test's courses and their lessons in order, from database/content.
+     *
+     * @return array<string, list<string>>
+     */
+    private function courses(): array
+    {
+        return $this->catalogFor('php');
+    }
 
     /**
      * The lessons of one PHP course, or of every PHP course.
@@ -146,7 +36,7 @@ class PhpLessonContentTest extends TestCase
      */
     private function lessons(?string $course = null): Collection
     {
-        return Lesson::whereIn('course_id', Course::whereIn('slug', $course === null ? array_keys(self::COURSES) : [$course])->select('id'))
+        return Lesson::whereIn('course_id', Course::whereIn('slug', $course === null ? array_keys($this->courses()) : [$course])->select('id'))
             ->orderBy('course_id')->orderBy('position')
             ->with('course')
             ->withCount(['quizQuestions', 'challenges'])
@@ -155,7 +45,9 @@ class PhpLessonContentTest extends TestCase
 
     public function test_each_course_has_its_lessons_in_order(): void
     {
-        foreach (self::COURSES as $course => $expected) {
+        $this->assertNotEmpty($this->courses());
+
+        foreach ($this->courses() as $course => $expected) {
             $lessons = $this->lessons($course);
 
             $this->assertSame($expected, $lessons->pluck('slug')->all());
@@ -186,28 +78,30 @@ class PhpLessonContentTest extends TestCase
      */
     public function test_every_theory_example_runs_as_the_lesson_says(): void
     {
-        $directory = sys_get_temp_dir().'/learnp-theory-'.uniqid();
-        File::ensureDirectoryExists($directory);
+        $examples = [];
+        foreach ($this->lessons() as $lesson) {
+            preg_match_all('/```php\n(.*?)```/s', $lesson->content, $matches);
+            $this->assertNotEmpty($matches[1], "{$lesson->slug} has no PHP examples");
 
-        try {
-            foreach ($this->lessons() as $lesson) {
-                preg_match_all('/```php\n(.*?)```/s', $lesson->content, $matches);
-                $this->assertNotEmpty($matches[1], "{$lesson->slug} has no PHP examples");
-
-                foreach ($matches[1] as $code) {
-                    File::put($directory.'/example.php', "<?php\n\n".$code);
-                    $result = Process::path($directory)->run([PHP_BINARY, '-d', 'display_errors=1', 'example.php']);
-                    $failed = ! $result->successful() || preg_match('/Fatal error|Parse error/', $result->output()) === 1;
-
-                    $this->assertSame(
-                        str_starts_with($code, '// Error:'),
-                        $failed,
-                        "{$lesson->slug}: this example ".($failed ? 'fails' : 'runs').":\n{$code}\n{$result->output()}",
-                    );
-                }
+            foreach ($matches[1] as $code) {
+                $examples[] = ['lesson' => $lesson->slug, 'code' => $code];
             }
-        } finally {
-            File::deleteDirectory($directory);
+        }
+
+        $results = $this->runPhpScripts(array_map(fn (array $example) => [
+            'files' => ['example.php' => "<?php\n\n".$example['code']],
+            'entry' => 'example.php',
+        ], $examples));
+
+        foreach ($examples as $index => ['lesson' => $slug, 'code' => $code]) {
+            $result = $results[$index];
+            $failed = ! $result['successful'] || preg_match('/Fatal error|Parse error/', $result['output']) === 1;
+
+            $this->assertSame(
+                str_starts_with($code, '// Error:'),
+                $failed,
+                "{$slug}: this example ".($failed ? 'fails' : 'runs').":\n{$code}\n{$result['output']}",
+            );
         }
     }
 
