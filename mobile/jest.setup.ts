@@ -41,6 +41,14 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+// The in-app browser and deep links need a native app; tests drive them by hand.
+jest.mock('expo-web-browser', () => ({ openAuthSessionAsync: jest.fn() }));
+jest.mock('expo-linking', () => ({
+  createURL: (path: string) => `learnp://${path}`,
+  parse: (url: string) => ({ queryParams: Object.fromEntries(new URL(url.replace('learnp://', 'https://app/')).searchParams) }),
+  openURL: jest.fn(),
+}));
+
 // Screens use the imperative router and <Stack.Screen options>; tests assert on the calls.
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), setParams: jest.fn(), back: jest.fn(), navigate: jest.fn() },

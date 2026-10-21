@@ -164,6 +164,10 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  email_verified: boolean;
+  /** False for accounts made with GitHub, which confirm deletion with their email instead. */
+  has_password: boolean;
+  github: boolean;
 }
 
 /** Signing in from the app returns an API token for this device. */

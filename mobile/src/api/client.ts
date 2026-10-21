@@ -27,11 +27,11 @@ export class ApiError extends Error {
   }
 }
 
-function baseUrl(): string {
+export function baseUrl(): string {
   return (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
 }
 
-async function request<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown): Promise<T> {
+async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   let response: Response;
   const token = currentToken();
 
@@ -88,4 +88,11 @@ export const api = {
   progress: () => request<ProgressState>('GET', 'progress'),
   saveProgress: (state: ProgressState) => request<null>('PUT', 'progress', state),
   mergeProgress: (state: ProgressState) => request<ProgressState>('POST', 'progress/merge', state),
+  authOptions: () => request<{ github: boolean }>('GET', 'auth/options'),
+  exchangeGithubCode: (code: string, device_name: string) =>
+    request<AuthResponse>('POST', 'auth/github/exchange', { code, device_name }),
+  resendVerification: () => request<{ message: string }>('POST', 'email/verification-notification'),
+  exportAccount: () => request<Record<string, unknown>>('GET', 'account/export'),
+  deleteAccount: (confirmation: { password: string } | { confirmation: string }) =>
+    request<null>('DELETE', 'account', confirmation),
 };

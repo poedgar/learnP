@@ -1,8 +1,9 @@
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { ApiError } from '../api/client';
-import { register, signIn, signOut, useAuthStore } from '../auth/store';
+import { useEffect, useState } from 'react';
+import { Alert, ScrollView, Share, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { api, ApiError, baseUrl } from '../api/client';
+import { deleteAccount, refreshUser, register, signIn, signInWithGithub, signOut, useAuthStore } from '../auth/store';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 
@@ -17,8 +18,15 @@ export function AccountScreen() {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [github, setGithub] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [confirmation, setConfirmation] = useState('');
 
   const registering = mode === 'register';
+
+  useEffect(() => {
+    api.authOptions().then((options) => setGithub(options.github), () => setGithub(false));
+  }, []);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -42,23 +50,6 @@ export function AccountScreen() {
     });
   }
 
-  if (user) {
-    return (
-      <ScrollView contentContainerStyle={styles.page}>
-        <Text accessibilityRole="header" style={[styles.title, { color: theme.ink }]}>
-          {user.name}
-        </Text>
-        <Text style={[styles.text, { color: theme.muted }]}>{user.email}</Text>
-        <Text style={[styles.text, { color: theme.muted }]}>
-          Your progress and review schedule are saved to your account, so they follow you to the web app and other
-          devices.
-        </Text>
-        <Button title="Sign out" disabled={busy} onPress={() => run(signOut)} />
-        {message ? <Text style={[styles.error, { color: theme.bad }]}>{message}</Text> : null}
-      </ScrollView>
-    );
-  }
-
   const field = (key: keyof typeof form, label: string, props: TextInputProps) => (
     <View style={styles.field}>
       <Text style={[styles.label, { color: theme.ink }]}>{label}</Text>
@@ -79,6 +70,97 @@ export function AccountScreen() {
     </View>
   );
 
+  if (user) {
+    return (
+      <ScrollView contentContainerStyle={styles.page}>
+        <Text accessibilityRole="header" style={[styles.title, { color: theme.ink }]}>
+          {user.name}
+        </Text>
+        <Text style={[styles.text, { color: theme.muted }]}>{user.email}</Text>
+        <Text style={[styles.text, { color: theme.muted }]}>
+          Your progress and review schedule are saved to your account, so they follow you to the web app and other
+          devices.
+        </Text>
+        <Button title="Sign out" disabled={busy} onPress={() => run(signOut)} />
+        {message ? <Text style={[styles.error, { color: theme.bad }]}>{message}</Text> : null}
+
+        {!user.email_verified ? (
+          <View style={[styles.card, { backgroundColor: theme.highlightSoft, borderColor: theme.highlight }]}>
+            <Text style={[styles.text, { color: theme.ink }]}>
+              Please confirm your email address with the link we sent you, so you can reset your password if you ever
+              need to.
+            </Text>
+            <Button
+              title="Send the link again"
+              disabled={busy}
+              onPress={() => run(async () => setNotice((await api.resendVerification()).message))}
+            />
+            <Button variant="quiet" title="I've confirmed it" disabled={busy} onPress={() => run(refreshUser)} />
+            {notice ? <Text style={[styles.text, { color: theme.ink }]}>{notice}</Text> : null}
+          </View>
+        ) : null}
+
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.line }]}>
+          <Text style={[styles.label, { color: theme.ink }]}>Your data</Text>
+          <Text style={[styles.text, { color: theme.muted }]}>
+            Everything we keep about you: your account, your progress in every lesson and your review schedule.
+          </Text>
+          <Button
+            title="Export my data"
+            disabled={busy}
+            onPress={() =>
+              run(async () => {
+                await Share.share({ title: 'learnP data', message: JSON.stringify(await api.exportAccount(), null, 2) });
+              })
+            }
+          />
+        </View>
+
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.bad }]}>
+          <Text style={[styles.label, { color: theme.ink }]}>Delete your account</Text>
+          <Text style={[styles.text, { color: theme.muted }]}>
+            {"This deletes your account and all your progress for good, on every device. It can't be undone."}
+          </Text>
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: theme.ink }]}>
+              {user.has_password ? 'Your password' : 'Type your email address to confirm'}
+            </Text>
+            <TextInput
+              accessibilityLabel={user.has_password ? 'Your password' : 'Type your email address to confirm'}
+              value={confirmation}
+              onChangeText={setConfirmation}
+              secureTextEntry={user.has_password}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={[styles.input, { color: theme.ink, backgroundColor: theme.background, borderColor: errors.password || errors.confirmation ? theme.bad : theme.line }]}
+            />
+            {(errors.password ?? errors.confirmation) ? (
+              <Text style={[styles.error, { color: theme.bad }]}>{(errors.password ?? errors.confirmation)[0]}</Text>
+            ) : null}
+          </View>
+          <Button
+            title="Delete my account"
+            disabled={busy || confirmation === ''}
+            onPress={() =>
+              Alert.alert('Delete your account?', 'Your account and all your progress will be deleted for good.', [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () =>
+                    run(async () => {
+                      await deleteAccount(user.has_password ? { password: confirmation } : { confirmation });
+                      router.back();
+                    }),
+                },
+              ])
+            }
+          />
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
       <Text accessibilityRole="header" style={[styles.title, { color: theme.ink }]}>
@@ -87,6 +169,18 @@ export function AccountScreen() {
       <Text style={[styles.text, { color: theme.muted }]}>
         {`An account keeps your progress and review schedule in step across devices and the web app. Whatever you've done on this device so far comes with you.`}
       </Text>
+
+      {github ? (
+        <Button
+          title="Continue with GitHub"
+          disabled={busy}
+          onPress={() =>
+            run(async () => {
+              if (await signInWithGithub()) router.back();
+            })
+          }
+        />
+      ) : null}
 
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.line }]}>
         {registering ? field('name', 'Name', { autoCapitalize: 'words', autoComplete: 'name', textContentType: 'name' }) : null}
@@ -109,6 +203,13 @@ export function AccountScreen() {
           </Text>
         ) : null}
         <Button variant="primary" title={registering ? 'Create account' : 'Sign in'} disabled={busy} onPress={submit} />
+        {!registering ? (
+          <Button
+            variant="quiet"
+            title="Forgot your password?"
+            onPress={() => Linking.openURL(`${baseUrl()}/forgot-password`)}
+          />
+        ) : null}
       </View>
 
       <Button
