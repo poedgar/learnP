@@ -2153,7 +2153,7 @@ export function createGitShell() {
                     '-p|--patch': 'flag',
                     '--stat': 'flag',
                     '--reverse': 'flag',
-                    '--format|--pretty': 'value',
+                    '--pretty|--format': 'value',
                     '--author': 'value',
                     '--grep': 'value',
                     '--first-parent': 'flag',
@@ -2256,7 +2256,7 @@ export function createGitShell() {
 
         show(args, io) {
             const repo = needRepo();
-            const { flags, positional } = parseArgs('show', args, { '--stat': 'flag', '--oneline': 'flag', '--name-only': 'flag', '-s|--no-patch': 'flag', '--format|--pretty': 'value' });
+            const { flags, positional } = parseArgs('show', args, { '--stat': 'flag', '--oneline': 'flag', '--name-only': 'flag', '-s|--no-patch': 'flag', '--pretty|--format': 'value' });
             const specs = positional.length ? positional : ['HEAD'];
             const blocks = [];
             for (const spec of specs) {
@@ -2294,7 +2294,7 @@ export function createGitShell() {
 
         diff(args, io) {
             const repo = needRepo();
-            const { flags, positional, paths } = parseArgs('diff', args, { '--staged|--cached': 'flag', '--stat': 'flag', '--name-only': 'flag', '--name-status': 'flag', '--quiet|--exit-code': 'flag' });
+            const { flags, positional, paths } = parseArgs('diff', args, { '--cached|--staged': 'flag', '--stat': 'flag', '--name-only': 'flag', '--name-status': 'flag', '--exit-code|--quiet': 'flag' });
             const filterSpecs = [...(paths ?? [])];
             const revs = [];
             for (const spec of positional) {
@@ -2380,7 +2380,7 @@ export function createGitShell() {
 
         switch(args, io) {
             const repo = needWorkTree();
-            const { flags, positional } = parseArgs('switch', args, { '-c|--create': 'value', '-C|--force-create': 'value', '-d|--detach': 'flag', '-f|--force|--discard-changes': 'flag', '-t|--track': 'flag', '-q|--quiet': 'flag' });
+            const { flags, positional } = parseArgs('switch', args, { '-c|--create': 'value', '-C|--force-create': 'value', '-d|--detach': 'flag', '-f|--discard-changes|--force': 'flag', '-t|--track': 'flag', '-q|--quiet': 'flag' });
             if (flags.quiet) io = quietly(io);
             if (flags.create || flags['force-create']) return createBranch(repo, flags.create ?? flags['force-create'], positional[0] ?? null, io, Boolean(flags['force-create']));
             if (flags.detach) return detach(repo, revOrFatal(repo, positional[0] ?? 'HEAD'), positional[0] ?? 'HEAD', io);
@@ -2620,6 +2620,7 @@ export function createGitShell() {
             const repo = needWorkTree();
             const { flags, positional } = parseArgs('rebase', args, { '--continue': 'flag', '--abort': 'flag', '--skip': 'flag', '--onto': 'value', '-i|--interactive': 'flag', '-q|--quiet': 'flag' });
             if (flags.interactive) throw unsupported("git rebase -i opens a text editor to list the commits, and this sandbox doesn't have one.");
+            if (flags.quiet) io = quietly(io);
             const state = repo.rebase;
             if (flags.abort) {
                 if (!state) throw fatal('No rebase in progress?');
@@ -3013,6 +3014,19 @@ export function createGitShell() {
                     other.heads.delete(dst);
                     repo.remoteRefs.delete(`${name}/${dst}`);
                     lines.push(['-', '[deleted]', dst]);
+                    continue;
+                }
+                if (repo.tags.has(src) && !repo.heads.has(src)) {
+                    // A tag goes to the remote's tags, never its branches.
+                    const tag = repo.tags.get(src);
+                    if (other.tags.get(dst)?.hash === tag.hash) continue;
+                    if (other.tags.has(dst) && !flags.force) {
+                        lines.push(['!', '[rejected]', `${src} -> ${dst} (already exists)`]);
+                        failed = true;
+                        continue;
+                    }
+                    other.tags.set(dst, tag);
+                    lines.push(['*', '[new tag]', `${src} -> ${dst}`]);
                     continue;
                 }
                 const srcName = src === 'HEAD' ? branch : src;
