@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { api } from '../api/client';
 import { LoadState } from '../components/LoadState';
@@ -27,13 +27,13 @@ export function LessonScreen({ courseSlug, lessonSlug, step: stepParam }: Props)
   });
   const step: Step = STEPS.includes(stepParam as Step) ? (stepParam as Step) : 'learn';
   const [visited, setVisited] = useState<Set<Step>>(() => new Set([step]));
+  // Steps stay mounted once visited, so their state survives switching back and forth.
+  if (!visited.has(step)) {
+    setVisited(new Set(visited).add(step));
+  }
   const [sandboxRequest, setSandboxRequest] = useState<{ code: string; key: number } | null>(null);
   const lesson = query.data?.data;
   const progress = useLessonProgress(lesson?.id ?? -1);
-
-  useEffect(() => {
-    setVisited((current) => (current.has(step) ? current : new Set(current).add(step)));
-  }, [step]);
 
   const goTo = (next: Step) => router.setParams({ step: next });
   const tryInSandbox = (code: string) => {

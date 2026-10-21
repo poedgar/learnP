@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { previewWait, type Card, type Grade } from '../../review/schedule';
+import { useNow } from '../../lib/useNow';
 import { useTheme } from '../../theme';
 
 const LABELS: Record<Grade, string> = { again: 'Again', hard: 'Hard', good: 'Good', easy: 'Easy' };
@@ -9,7 +10,7 @@ type Props = { card: Card | undefined; grades: Grade[]; onGrade: (grade: Grade) 
 /** Anki-style grade buttons, each showing when the card would come back. */
 export function GradeButtons({ card, grades, onGrade }: Props) {
   const theme = useTheme();
-  const now = Date.now();
+  const now = useNow();
 
   return (
     <View style={styles.row}>

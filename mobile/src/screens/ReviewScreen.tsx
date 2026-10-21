@@ -9,6 +9,7 @@ import { LoadState } from '../components/LoadState';
 import { ReviewChallengeCard } from '../components/review/ReviewChallengeCard';
 import { ReviewQuizCard } from '../components/review/ReviewQuizCard';
 import { plural } from '../lib/text';
+import { useNow } from '../lib/useNow';
 import { useReviewDeck, type ReviewItem } from '../review/deck';
 import { describeDue, nextDue, type Grade } from '../review/schedule';
 import { useReviewStore } from '../review/store';
@@ -27,7 +28,7 @@ const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
 /** Every passed quiz question and challenge, with spaced-repetition reviews (see src/review). */
 export function ReviewScreen() {
   const theme = useTheme();
-  const now = Date.now();
+  const now = useNow();
   const { items, cards, due } = useReviewDeck(now);
   const grade = useReviewStore((state) => state.grade);
   const [queue, setQueue] = useState<string[] | null>(null);

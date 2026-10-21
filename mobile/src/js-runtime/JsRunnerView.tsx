@@ -1,7 +1,7 @@
 'use dom';
 
 import { useDOMImperativeHandle, type DOMImperativeFactory, type DOMProps } from 'expo/dom';
-import { useEffect, useRef, type Ref } from 'react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import { createJsEngine, frameHtml, typescriptWorkerScript } from './engine';
 import { acornSource, frameRuntimeSource, loopGuardSource, tsServiceSource } from './sources';
 import { TS_VERSION } from './ts-version';
@@ -39,16 +39,17 @@ export default function JsRunnerView({ apiBase, dark, onResult, onLog, ref }: Pr
   const pool = useRef<HTMLDivElement>(null);
   const shown = useRef<Frame | null>(null);
   const callbacks = useRef({ onResult, onLog });
-  callbacks.current = { onResult, onLog };
-
-  const engines = useRef<{ hidden: ReturnType<typeof createJsEngine>; visible: ReturnType<typeof createJsEngine> } | null>(null);
+  useEffect(() => {
+    callbacks.current = { onResult, onLog };
+  });
 
   useEffect(() => {
     document.body.style.margin = '0';
     document.body.style.background = dark ? '#282c34' : '#ffffff';
   }, [dark]);
 
-  if (!engines.current) {
+  // Created once; the frames themselves are only opened when code runs.
+  const [engines] = useState(() => {
     // Hidden frames are 800 × 600 CSS pixels (layout checks depend on it), or as wide as a check asks.
     const openFrame = (host: HTMLElement | null, width: number | null = null): Promise<Frame> =>
       new Promise((resolve) => {
@@ -111,11 +112,11 @@ export default function JsRunnerView({ apiBase, dark, onResult, onLog, ref }: Pr
       },
     };
 
-    engines.current = {
+    return {
       hidden: createJsEngine({ openFrame: ({ width }) => openFrame(null, width), typescript }),
       visible: createJsEngine({ openFrame: () => openFrame(page.current), typescript }),
     };
-  }
+  });
 
   // DOMImperativeFactory types every method as (...args: JSONValue[]); the handle keeps its own, narrower types.
   useDOMImperativeHandle(
@@ -125,7 +126,7 @@ export default function JsRunnerView({ apiBase, dark, onResult, onLog, ref }: Pr
         const [json] = args as Parameters<RunnerHandle['start']>;
         const request = JSON.parse(json);
         const reply = (body: object) => callbacks.current.onResult(JSON.stringify({ id: request.id, ...body }));
-        const { hidden, visible } = engines.current!;
+        const { hidden, visible } = engines;
 
         shown.current?.close();
         shown.current = null;

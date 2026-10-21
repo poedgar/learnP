@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useState, type Ref } from 'react';
+import { useImperativeHandle, useState, type Ref } from 'react';
 import { TextInput } from 'react-native';
 import type { EditorHandle } from '../CodeMirrorView';
 
@@ -20,9 +20,12 @@ export default function CodeMirrorView({
 }) {
   const initialValue = decodeURIComponent(encodedInitialValue);
   const [value, setValue] = useState(initialValue);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => setValue(initialValue), [resetKey]);
+  const [appliedReset, setAppliedReset] = useState(resetKey);
+  // A new resetKey means new text from the screen, like the real editor.
+  if (appliedReset !== resetKey) {
+    setAppliedReset(resetKey);
+    setValue(initialValue);
+  }
 
   useImperativeHandle(ref, () => ({
     insert: (text: string) => {

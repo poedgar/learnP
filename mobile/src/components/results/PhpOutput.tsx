@@ -33,7 +33,7 @@ export function PhpOutput({ output, fatal, durationMs = null }: Props) {
           </Text>
         ) : (
           <Text style={[styles.silent, { color: theme.muted }]}>
-            Your code ran but didn't print anything. Use echo to see values.
+            {"Your code ran but didn't print anything. Use echo to see values."}
           </Text>
         )}
       </ScrollView>

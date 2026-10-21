@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, useColorScheme, View } from 'react-native';
 import type { ConsoleEntry, FrameLanguage, JsCheck, JsRun } from '../api/types';
 import { domProps } from '../editor/domProps';
@@ -34,7 +34,9 @@ export function useJsRunner(language: Language, onLog?: (entry: ConsoleEntry) =>
   const nextId = useRef(1);
   const [showPage, setShowPage] = useState(false);
   const logListener = useRef(onLog);
-  logListener.current = onLog;
+  useEffect(() => {
+    logListener.current = onLog;
+  });
 
   async function send(request: object): Promise<any> {
     // The WebView sets up its handle once it has loaded; wait for it briefly.
@@ -68,7 +70,7 @@ export function useJsRunner(language: Language, onLog?: (entry: ConsoleEntry) =>
 
   const view = (
     <View style={showPage ? styles.page : styles.hidden} accessible={false}>
-      {showPage ? <Text style={[styles.heading, { color: theme.ink }]}>Your page (it's live: tap and type in it)</Text> : null}
+      {showPage ? <Text style={[styles.heading, { color: theme.ink }]}>{"Your page (it's live: tap and type in it)"}</Text> : null}
       <View style={[styles.frame, showPage ? { borderColor: theme.line, borderWidth: 1 } : null]}>
         <JsRunnerView
           ref={handle}

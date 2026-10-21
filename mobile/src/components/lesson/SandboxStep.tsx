@@ -73,6 +73,8 @@ export function SandboxStep({ lesson, language, schema, request }: Props) {
 
   useEffect(() => {
     if (request) {
+      // A "Try it" request from another step is an outside event: load its code, then run it.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       load(language === 'php' ? withOpeningTag(request.code) : request.code);
       run();
     }

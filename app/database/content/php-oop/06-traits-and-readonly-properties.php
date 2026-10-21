@@ -472,7 +472,7 @@ return [
             'checks' => [
                 ['label' => "describe() gives ShelfLabel's 'DUNE'", 'code' => "return expect_same((new Book('Dune', 'Frank Herbert'))->describe(), 'DUNE');"],
                 ['label' => "catalogueEntry() gives 'Dune by Frank Herbert'", 'code' => "return expect_same((new Book('Dune', 'Frank Herbert'))->catalogueEntry(), 'Dune by Frank Herbert');"],
-                ['label' => 'Book still uses both traits', 'code' => "return expect_same(implode(', ', array_keys(class_uses('Book'))), 'CatalogueEntry, ShelfLabel');"],
+                ['label' => 'Book still uses both traits', 'code' => "\$traits = array_keys(class_uses('Book'));\nsort(\$traits);\nreturn expect_same(implode(', ', \$traits), 'CatalogueEntry, ShelfLabel');"],
             ],
         ],
     ],

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api/client';
 import { runsInFrame, type Challenge, type JsCheck, type JsRun, type Language, type Lesson, type PhpCheck, type PhpRun, type SqlCheck, type SqlRun } from '../../api/types';
@@ -54,6 +54,10 @@ export function ChallengesStep({ lesson, language }: Props) {
   const runner = useJsRunner(javascript ? language : 'javascript', (entry) =>
     setRun((current) => (current?.kind === 'js' ? { kind: 'js', run: { ...current.run, entries: [...current.run.entries, entry] } } : current)),
   );
+  const shownChallengeId = challenges[index]?.id ?? null;
+  useEffect(() => {
+    shownId.current = shownChallengeId;
+  }, [shownChallengeId]);
 
   if (challenges.length === 0) {
     return (
@@ -64,7 +68,6 @@ export function ChallengesStep({ lesson, language }: Props) {
   }
 
   const active = challenges[index];
-  shownId.current = active.id;
   const solved = challenges.filter((c) => progress.challenges[c.id]?.passed).length;
   const order = [...challenges.slice(index + 1), ...challenges.slice(0, index)];
   const nextUnsolved = order.find((c) => !progress.challenges[c.id]?.passed) ?? null;
@@ -239,7 +242,7 @@ export function ChallengesStep({ lesson, language }: Props) {
               <Button variant="primary" title="Next challenge" onPress={() => open(nextUnsolved)} />
             ) : null}
             {check.check.passed && !nextUnsolved ? (
-              <Text style={[styles.text, { color: theme.ink }]}>You've solved every challenge in this lesson.</Text>
+              <Text style={[styles.text, { color: theme.ink }]}>{"You've solved every challenge in this lesson."}</Text>
             ) : null}
           </View>
           {check.kind === 'sql' ? <SqlCheckDetails check={check.check} /> : <PhpCheckDetails check={check.check} />}

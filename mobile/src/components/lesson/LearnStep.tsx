@@ -43,7 +43,7 @@ export function LearnStep({ lesson, language, onTry, onFinish, onSkip }: Props) 
       {next ? null : (
         <View style={[styles.finish, { borderColor: theme.line }]}>
           <Text style={[styles.finishText, { color: theme.ink }]}>
-            That's the end of the reading. Try what you've learned in the sandbox, then take the quiz.
+            {"That's the end of the reading. Try what you've learned in the sandbox, then take the quiz."}
           </Text>
           <Button
             variant="primary"

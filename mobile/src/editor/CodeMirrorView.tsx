@@ -56,7 +56,9 @@ export default function CodeMirrorView({
   const latest = useRef(initialValue);
   const appliedReset = useRef<number | null>(null);
   const callbacks = useRef({ onChange, onFocusChange });
-  callbacks.current = { onChange, onFocusChange };
+  useEffect(() => {
+    callbacks.current = { onChange, onFocusChange };
+  });
 
   useEffect(() => {
     document.body.style.margin = '0';
