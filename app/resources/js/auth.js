@@ -39,6 +39,19 @@ export async function signIn(credentials) {
     signedIn(await api.login(credentials));
 }
 
+/** Fetches the user again, for example after their email address was confirmed. */
+export async function refreshUser() {
+    const user = await api.user();
+    if (user) auth.user = user;
+}
+
+/** Deletes the account for good; this browser's copy of its progress goes with it. */
+export async function deleteAccount(confirmation) {
+    await api.deleteAccount(confirmation);
+    auth.user = null;
+    stopSync({ clear: true });
+}
+
 export async function signOut() {
     await flushSync();
     await api.logout();

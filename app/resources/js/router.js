@@ -18,6 +18,9 @@ export default createRouter({
         { path: '/review', name: 'review', component: () => import('./pages/ReviewPage.vue') },
         { path: '/sign-in', name: 'sign-in', component: AccountPage, props: { mode: 'sign-in' } },
         { path: '/register', name: 'register', component: AccountPage, props: { mode: 'register' } },
+        { path: '/forgot-password', name: 'forgot-password', component: () => import('./pages/ForgotPasswordPage.vue') },
+        { path: '/reset-password/:token', name: 'reset-password', component: () => import('./pages/ResetPasswordPage.vue'), props: true },
+        { path: '/account', name: 'account', component: () => import('./pages/SettingsPage.vue') },
         { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundPage },
     ],
     scrollBehavior(to, from) {

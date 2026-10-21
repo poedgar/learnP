@@ -19,7 +19,7 @@ const signingOut = ref(false);
 // Back to the page they were on after signing in, unless that was an account page.
 const signInLink = computed(() => ({
     name: 'sign-in',
-    query: ['sign-in', 'register'].includes(route.name) ? route.query : { redirect: route.fullPath },
+    query: ['sign-in', 'register', 'forgot-password', 'reset-password'].includes(route.name) ? route.query : { redirect: route.fullPath },
 }));
 
 async function onSignOut() {
@@ -45,7 +45,7 @@ async function onSignOut() {
                 </RouterLink>
                 <template v-if="auth.ready">
                     <span v-if="auth.user" class="account">
-                        <span class="user-name">{{ auth.user.name }}</span>
+                        <RouterLink :to="{ name: 'account' }" class="user-name">{{ auth.user.name }}</RouterLink>
                         <button type="button" class="btn btn-quiet" :disabled="signingOut" @click="onSignOut">Sign out</button>
                     </span>
                     <RouterLink v-else :to="signInLink">Sign in</RouterLink>

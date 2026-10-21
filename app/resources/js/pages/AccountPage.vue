@@ -1,6 +1,7 @@
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { api } from '../api';
 import { register, signIn } from '../auth';
 
 const props = defineProps({
@@ -15,6 +16,19 @@ const form = reactive({ name: '', email: '', password: '', password_confirmation
 const errors = ref({});
 const message = ref('');
 const busy = ref(false);
+const github = ref(false);
+
+onMounted(async () => {
+    github.value = (await api.authOptions().catch(() => ({ github: false }))).github;
+});
+
+// GitHub sign-in sends people back here with ?error= when it can't finish.
+const githubErrors = {
+    'github-email': 'GitHub did not share an email address with us. Make one visible to apps in your GitHub settings, then try again.',
+    'github-linked': 'That email address already belongs to an account linked to a different GitHub account.',
+    'github-failed': 'GitHub sign-in did not finish. Please try again.',
+};
+const githubError = computed(() => githubErrors[route.query.error] ?? '');
 
 // Only paths inside the app, so a crafted link can't send someone elsewhere after signing in.
 const destination = computed(() => {
@@ -46,12 +60,16 @@ async function submit() {
 </script>
 
 <template>
-    <div class="account">
+    <div class="form-page">
         <h1>{{ registering ? 'Create an account' : 'Sign in' }}</h1>
         <p class="lead">
             An account keeps your progress and review schedule in step across browsers and the mobile app. Whatever
             you've done in this browser so far comes with you.
         </p>
+
+        <p v-if="githubError" class="error" role="alert">{{ githubError }}</p>
+
+        <a v-if="github" class="btn" href="/auth/github">Continue with GitHub</a>
 
         <form class="card" novalidate @submit.prevent="submit">
             <div v-if="registering" class="field">
@@ -78,6 +96,7 @@ async function submit() {
                     aria-describedby="password-error"
                 />
                 <p v-if="errors.password" id="password-error" class="error">{{ errors.password[0] }}</p>
+                <RouterLink v-if="!registering" :to="{ name: 'forgot-password' }">Forgot your password?</RouterLink>
             </div>
 
             <div v-if="registering" class="field">
@@ -101,65 +120,3 @@ async function submit() {
     </div>
 </template>
 
-<style scoped>
-.account {
-    display: grid;
-    gap: 1.25rem;
-    max-width: 28rem;
-    padding: 2.5rem 0 5rem;
-}
-
-h1 {
-    font-size: clamp(1.8rem, 4vw, 2.6rem);
-    font-weight: 800;
-}
-
-.lead {
-    color: var(--muted);
-}
-
-.card {
-    display: grid;
-    gap: 1rem;
-    padding: 1.5rem;
-    border-radius: var(--radius-lg);
-    background: var(--surface);
-    border: 1px solid var(--line);
-}
-
-.field {
-    display: grid;
-    gap: 0.35rem;
-}
-
-label {
-    font-weight: 700;
-}
-
-input {
-    padding: 0.55rem 0.75rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--paper);
-    color: var(--ink);
-}
-
-input[aria-invalid='true'] {
-    border-color: var(--bad);
-}
-
-.error {
-    color: var(--bad);
-    font-size: 0.95rem;
-}
-
-.card .btn {
-    justify-self: start;
-}
-
-a {
-    font-weight: 700;
-    color: var(--ink);
-    text-decoration: underline;
-}
-</style>

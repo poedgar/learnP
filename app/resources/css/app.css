@@ -184,3 +184,96 @@ kbd {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* Account pages: sign in, register, password reset, settings. */
+.form-page {
+    display: grid;
+    gap: 1.25rem;
+    max-width: 30rem;
+    padding: 2.5rem 0 5rem;
+}
+
+.form-page h1 {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 800;
+}
+
+.form-page h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.form-page .lead {
+    color: var(--muted);
+}
+
+.form-page .card {
+    display: grid;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+}
+
+.form-page .card.danger {
+    border-color: var(--bad);
+}
+
+.form-page .field {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.form-page label {
+    font-weight: 700;
+}
+
+.form-page input {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper);
+    color: var(--ink);
+}
+
+.form-page input[aria-invalid='true'] {
+    border-color: var(--bad);
+}
+
+.form-page .error {
+    color: var(--bad);
+    font-size: 0.95rem;
+}
+
+.form-page .notice {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    background: var(--ok-soft);
+    color: var(--ink);
+}
+
+.form-page .notice.warning {
+    background: var(--highlight-soft);
+}
+
+.form-page .card .btn {
+    justify-self: start;
+}
+
+.form-page a:not(.btn) {
+    font-weight: 700;
+    color: var(--ink);
+    text-decoration: underline;
+}
+
+.btn-danger {
+    background: var(--bad);
+    border-color: var(--bad);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: var(--bad);
+    filter: brightness(0.92);
+}

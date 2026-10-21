@@ -61,4 +61,9 @@ export const api = {
     progress: () => request('GET', 'progress'),
     saveProgress: (state) => request('PUT', 'progress', state),
     mergeProgress: (state) => request('POST', 'progress/merge', state),
+    authOptions: () => request('GET', 'auth/options'),
+    forgotPassword: (email) => request('POST', 'forgot-password', { email }),
+    resetPassword: (details) => request('POST', 'reset-password', details),
+    resendVerification: () => request('POST', 'email/verification-notification'),
+    deleteAccount: (confirmation) => request('DELETE', 'account', confirmation),
 };

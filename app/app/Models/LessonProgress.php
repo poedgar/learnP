@@ -25,6 +25,11 @@ class LessonProgress extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function lesson(): BelongsTo
+    {
+        return $this->belongsTo(Lesson::class);
+    }
+
     /**
      * Combines two independent histories of one lesson, as when a device that was used
      * signed out joins an account. Nothing passed on either side is lost; where both have

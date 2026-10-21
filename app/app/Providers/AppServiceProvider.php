@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Sandbox\HttpPhpSandbox;
 use App\Sandbox\PhpSandbox;
 use App\Sandbox\SqlSandbox;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -33,6 +35,11 @@ class AppServiceProvider extends ServiceProvider
     {
         // Each sandbox run spawns a PHP process, so keep bursts in check.
         RateLimiter::for('sandbox', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+
+        // Reset links open the web app's own page, which posts the new password to the API.
+        ResetPassword::createUrlUsing(
+            fn (User $user, string $token) => url('/reset-password/'.$token).'?email='.urlencode($user->getEmailForPasswordReset()),
+        );
 
         // Slows password guessing against one account, and sign-up floods from one address.
         RateLimiter::for('auth', fn (Request $request) => [

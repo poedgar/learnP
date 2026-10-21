@@ -18,6 +18,9 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'email_verified' => $this->hasVerifiedEmail(),
+            'has_password' => $this->hasPassword(),
+            'github' => $this->github_id !== null,
         ];
     }
 }

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\GitHubController;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -25,6 +27,7 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = User::create($request->safe()->only(['name', 'email', 'password']));
+        event(new Registered($user));
 
         return $this->signIn($request, $user)->setStatusCode(201);
     }
@@ -56,6 +59,12 @@ class AuthController extends Controller
     }
 
     /** The signed-in user, or null for a guest. */
+    /** What the sign-in pages can offer. */
+    public function options(): JsonResponse
+    {
+        return response()->json(['github' => GitHubController::enabled()]);
+    }
+
     public function show(Request $request): JsonResponse
     {
         $user = $request->user('sanctum');
