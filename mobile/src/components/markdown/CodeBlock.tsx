@@ -6,6 +6,9 @@ import 'prismjs/components/prism-typescript';
 import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-yaml';
 import 'prismjs/components/prism-docker';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-nginx';
+import 'prismjs/components/prism-ini';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { monoFont, useTheme, type SyntaxColor } from '../../theme';
 
@@ -14,11 +17,13 @@ Prism.languages.laravel = Prism.languages.php;
 // Read-only blocks in other languages that lessons show.
 Prism.languages.blade = Prism.languages.markup;
 Prism.languages.shell = Prism.languages.bash;
+Prism.languages.env = Prism.languages.ini;
 
 /** Prism token types → theme syntax colours. Anything unlisted inherits its parent's colour. */
 const COLORS: Record<string, SyntaxColor> = {
   keyword: 'keyword',
   boolean: 'keyword',
+  null: 'keyword',
   delimiter: 'keyword',
   important: 'keyword',
   string: 'string',
@@ -30,13 +35,15 @@ const COLORS: Record<string, SyntaxColor> = {
   variable: 'variable',
   property: 'variable',
   'class-name': 'type',
-  // Markup (HTML, Blade), YAML and Dockerfiles.
+  // Markup (HTML, Blade), YAML, Dockerfiles, nginx and ini files.
   tag: 'keyword',
   'attr-name': 'variable',
   'attr-value': 'string',
   key: 'variable',
   atrule: 'keyword',
   parameter: 'variable',
+  directive: 'keyword',
+  section: 'type',
 };
 
 export function highlightTokens(code: string, language: string): { text: string; color: SyntaxColor }[] {

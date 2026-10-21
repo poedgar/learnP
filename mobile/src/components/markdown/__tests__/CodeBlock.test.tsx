@@ -29,12 +29,15 @@ test('laravel blocks are highlighted as PHP', () => {
   expect(highlightTokens('$app->bind(Mailer::class);', 'laravel').length).toBeGreaterThan(1);
 });
 
-test.each(['bash', 'dockerfile', 'yaml', 'blade'])('%s blocks are highlighted', (language) => {
+test.each(['bash', 'dockerfile', 'yaml', 'blade', 'json', 'nginx', 'env'])('%s blocks are highlighted', (language) => {
   const samples: Record<string, string> = {
     bash: 'docker run -d --name web nginx:1.27 # comment',
     dockerfile: 'FROM php:8.4-cli\nRUN apt-get update',
     yaml: 'services:\n  app:\n    build: .',
     blade: '<p>{{ $title }}</p>',
+    json: '{"data": {"id": 7, "title": "Dune", "draft": false, "author": null}}',
+    nginx: 'server {\n    listen 80;\n    root /var/www/public;\n}',
+    env: '# Production\nAPP_ENV=production\nAPP_DEBUG=false',
   };
   const tokens = highlightTokens(samples[language], language);
   expect(tokens.map((t) => t.text).join('')).toBe(samples[language]);

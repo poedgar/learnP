@@ -1,4 +1,4 @@
-import { highlightCode as lezerHighlight, classHighlighter } from '@lezer/highlight';
+import { highlightCode as lezerHighlight, classHighlighter, tags } from '@lezer/highlight';
 import { SQLite } from '@codemirror/lang-sql';
 import { phpLanguage } from '@codemirror/lang-php';
 import { javascriptLanguage, typescriptLanguage } from '@codemirror/lang-javascript';
@@ -8,6 +8,9 @@ import { StreamLanguage } from '@codemirror/language';
 import { shell } from '@codemirror/legacy-modes/mode/shell';
 import { dockerFile } from '@codemirror/legacy-modes/mode/dockerfile';
 import { yaml } from '@codemirror/legacy-modes/mode/yaml';
+import { json } from '@codemirror/legacy-modes/mode/javascript';
+import { nginx } from '@codemirror/legacy-modes/mode/nginx';
+import { properties } from '@codemirror/legacy-modes/mode/properties';
 
 const parsers = {
     sql: () => SQLite.language.parser,
@@ -22,7 +25,8 @@ const parsers = {
 // Real framework code in lessons that can't run in the sandbox: highlighted as PHP, never runnable.
 parsers.laravel = parsers.php;
 
-// Read-only blocks in other languages that lessons show (Blade, shell commands, Docker files).
+// Read-only blocks in other languages that lessons show (Blade, shell commands, Docker files,
+// JSON responses and server or .env configuration).
 const streamParser = (mode) => {
     const parser = StreamLanguage.define(mode).parser;
     return () => parser;
@@ -33,6 +37,11 @@ parsers.shell = parsers.bash;
 parsers.git = parsers.bash;
 parsers.dockerfile = streamParser(dockerFile);
 parsers.yaml = streamParser(yaml);
+// JSON's keys come out as `property`, which needs a tag of its own.
+parsers.json = streamParser({ ...json, tokenTable: { property: tags.propertyName } });
+parsers.nginx = streamParser(nginx);
+parsers.ini = streamParser(properties);
+parsers.env = parsers.ini;
 
 function escapeHtml(text) {
     return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
