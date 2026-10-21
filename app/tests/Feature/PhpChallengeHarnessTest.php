@@ -60,7 +60,7 @@ class PhpChallengeHarnessTest extends TestCase
     public function test_every_php_challenge_solution_passes_all_its_checks(): void
     {
         $challenges = Challenge::whereNotNull('checks')->whereRelation('lesson.course', 'language', 'php')->get();
-        $this->assertCount(359, $challenges);
+        $this->assertCount(551, $challenges);
 
         foreach ($challenges as $challenge) {
             $report = $this->runHarness($challenge->solution, $challenge->checks);
@@ -195,6 +195,56 @@ class PhpChallengeHarnessTest extends TestCase
 
         $this->assertSame('Expected [9.99,19.99], got [9.99,20.0].', $report['checks'][0]['message']);
         $this->assertSame('Expected [], got an array with 100 items.', $report['checks'][1]['message']);
+    }
+
+    public function test_checks_can_read_dockerfiles(): void
+    {
+        $report = $this->runHarness(<<<'PHP'
+            <?php
+            $dockerfile = <<<'DOCKERFILE'
+            # syntax=docker/dockerfile:1
+            FROM php:8.4-cli AS base
+
+            run apt-get update \
+                && apt-get install -y   git \
+                # a comment inside a continuation is skipped
+                && rm -rf /var/lib/apt/lists/*
+            CMD ["php", "-a"]
+            DOCKERFILE;
+            PHP, [
+            ['label' => 'parsed', 'code' => <<<'PHP'
+                return expect_same(learnp_dockerfile($GLOBALS['dockerfile']), [
+                    ['instruction' => 'FROM', 'args' => 'php:8.4-cli AS base'],
+                    ['instruction' => 'RUN', 'args' => 'apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*'],
+                    ['instruction' => 'CMD', 'args' => '["php", "-a"]'],
+                ]);
+                PHP],
+        ]);
+
+        $this->assertSame([true], array_column($report['checks'], 'passed'), json_encode($report['checks']));
+    }
+
+    public function test_checks_can_split_shell_commands(): void
+    {
+        $report = $this->runHarness('<?php $command = "docker run -d \\\\\n  -e \'GREETING=hello world\' -e NOTE=\"say \\\\\"hi\\\\\"\" --name web nginx:1.27";', [
+            ['label' => 'split', 'code' => <<<'PHP'
+                return expect_same(learnp_shell_words($GLOBALS['command']), ['docker', 'run', '-d', '-e', 'GREETING=hello world', '-e', 'NOTE=say "hi"', '--name', 'web', 'nginx:1.27']);
+                PHP],
+            ['label' => 'empty quotes are a word', 'code' => "return expect_same(learnp_shell_words(\"echo '' a\\\\ b\"), ['echo', '', 'a b']);"],
+        ]);
+
+        $this->assertSame([true, true], array_column($report['checks'], 'passed'), json_encode($report['checks']));
+    }
+
+    public function test_checks_can_read_docker_run_commands(): void
+    {
+        $report = $this->runHarness('<?php $a = "docker run -d -p 8080:80 --name=web -e A=1 --env B=2 nginx:1.27"; $b = "docker container run --rm -it -v data:/data php:8.4-cli php -a"; $c = "docker ps";', [
+            ['label' => 'long and short', 'code' => "return expect_same(learnp_docker_run(\$GLOBALS['a']), ['options' => ['publish' => ['8080:80'], 'name' => ['web'], 'env' => ['A=1', 'B=2']], 'flags' => ['detach'], 'image' => 'nginx:1.27', 'args' => []]);"],
+            ['label' => 'combined flags and a command', 'code' => "return expect_same(learnp_docker_run(\$GLOBALS['b']), ['options' => ['volume' => ['data:/data']], 'flags' => ['rm', 'interactive', 'tty'], 'image' => 'php:8.4-cli', 'args' => ['php', '-a']]);"],
+            ['label' => 'other commands', 'code' => "return expect_same(learnp_docker_run(\$GLOBALS['c']), null);"],
+        ]);
+
+        $this->assertSame([true, true, true], array_column($report['checks'], 'passed'), json_encode($report['checks']));
     }
 
     public function test_exceptions_in_checks_fail_only_that_check(): void

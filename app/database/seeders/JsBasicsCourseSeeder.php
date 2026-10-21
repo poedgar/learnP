@@ -11,7 +11,7 @@ class JsBasicsCourseSeeder extends ContentCourseSeeder
             'title' => 'JavaScript basics',
             'language' => 'javascript',
             'description' => 'Values and variables, comparisons, control flow, functions and closures, arrays, objects and JSON, classes, errors, Map and Set. It runs in your browser.',
-            'position' => 12,
+            'position' => 16,
         ];
     }
 

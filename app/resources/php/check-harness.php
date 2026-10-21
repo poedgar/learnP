@@ -69,6 +69,161 @@ function learnp_run(string $code): string
     return $output;
 }
 
+/**
+ * A Dockerfile's instructions, for checks on the Docker course: comments and blank lines are
+ * skipped, lines ending in a backslash are joined, runs of whitespace become one space, and each
+ * instruction comes back as ['instruction' => 'FROM', 'args' => 'php:8.4-cli']. For use inside check code.
+ *
+ * @return list<array{instruction: string, args: string}>
+ */
+function learnp_dockerfile(string $dockerfile): array
+{
+    $instructions = [];
+    $pending = '';
+
+    foreach (preg_split('/\r?\n/', $dockerfile) as $line) {
+        $trimmed = trim($line);
+        if ($trimmed === '' || str_starts_with($trimmed, '#')) {
+            continue;
+        }
+
+        if (str_ends_with($trimmed, '\\')) {
+            $pending .= substr($trimmed, 0, -1).' ';
+
+            continue;
+        }
+
+        $full = trim(preg_replace('/\s+/', ' ', $pending.$trimmed));
+        $pending = '';
+        [$instruction, $args] = array_pad(explode(' ', $full, 2), 2, '');
+        $instructions[] = ['instruction' => strtoupper($instruction), 'args' => $args];
+    }
+
+    if (trim($pending) !== '') {
+        $full = trim(preg_replace('/\s+/', ' ', $pending));
+        [$instruction, $args] = array_pad(explode(' ', $full, 2), 2, '');
+        $instructions[] = ['instruction' => strtoupper($instruction), 'args' => $args];
+    }
+
+    return $instructions;
+}
+
+/**
+ * Splits a shell command into words as a shell would for ordinary commands: whitespace separates
+ * words, single and double quotes group them, a backslash escapes the next character, and a
+ * backslash before a line break joins the lines. For use inside check code.
+ *
+ * @return list<string>
+ */
+function learnp_shell_words(string $command): array
+{
+    $command = preg_replace('/\\\\\r?\n/', ' ', $command);
+    $words = [];
+    $word = null;
+    $quote = null;
+    $length = strlen($command);
+
+    for ($i = 0; $i < $length; $i++) {
+        $char = $command[$i];
+
+        if ($quote === "'") {
+            $char === "'" ? $quote = null : $word .= $char;
+        } elseif ($quote === '"') {
+            if ($char === '\\' && $i + 1 < $length && in_array($command[$i + 1], ['"', '\\', '$'], true)) {
+                $word .= $command[++$i];
+            } elseif ($char === '"') {
+                $quote = null;
+            } else {
+                $word .= $char;
+            }
+        } elseif ($char === "'" || $char === '"') {
+            $quote = $char;
+            $word ??= '';
+        } elseif ($char === '\\' && $i + 1 < $length) {
+            $word = ($word ?? '').$command[++$i];
+        } elseif (learnp_is_space($char)) {
+            if ($word !== null) {
+                $words[] = $word;
+                $word = null;
+            }
+        } else {
+            $word = ($word ?? '').$char;
+        }
+    }
+
+    if ($word !== null) {
+        $words[] = $word;
+    }
+
+    return $words;
+}
+
+/**
+ * Reads a `docker run` (or `docker container run`) command for checks on the Docker course, or
+ * returns null for any other command. Short options are named like their long forms (-d is detach,
+ * -p is publish, -it is interactive and tty), so either spelling passes:
+ * ['options' => ['publish' => ['8080:80']], 'flags' => ['detach'], 'image' => 'nginx:1.27', 'args' => []].
+ *
+ * @return array{options: array<string, list<string>>, flags: list<string>, image: ?string, args: list<string>}|null
+ */
+function learnp_docker_run(string $command): ?array
+{
+    $words = learnp_shell_words($command);
+    $start = match (true) {
+        array_slice($words, 0, 2) === ['docker', 'run'] => 2,
+        array_slice($words, 0, 3) === ['docker', 'container', 'run'] => 3,
+        default => null,
+    };
+    if ($start === null) {
+        return null;
+    }
+
+    $short = ['d' => 'detach', 'i' => 'interactive', 't' => 'tty', 'p' => 'publish', 'e' => 'env', 'v' => 'volume', 'w' => 'workdir', 'u' => 'user', 'l' => 'label'];
+    $takesValue = ['publish', 'env', 'name', 'volume', 'network', 'workdir', 'user', 'env-file', 'mount', 'restart', 'label', 'entrypoint', 'hostname', 'platform', 'memory', 'cpus', 'add-host', 'expose'];
+    $options = [];
+    $flags = [];
+
+    for ($i = $start; $i < count($words); $i++) {
+        $word = $words[$i];
+
+        if (str_starts_with($word, '--')) {
+            [$name, $value] = array_pad(explode('=', substr($word, 2), 2), 2, null);
+            if (in_array($name, $takesValue, true)) {
+                $options[$name][] = $value ?? ($words[++$i] ?? '');
+            } else {
+                $flags[] = $name;
+            }
+
+            continue;
+        }
+
+        if (str_starts_with($word, '-') && strlen($word) > 1) {
+            $letters = substr($word, 1);
+            for ($j = 0; $j < strlen($letters); $j++) {
+                $name = $short[$letters[$j]] ?? $letters[$j];
+                if (in_array($name, $takesValue, true)) {
+                    $rest = substr($letters, $j + 1);
+                    $options[$name][] = $rest !== '' ? ltrim($rest, '=') : ($words[++$i] ?? '');
+
+                    break;
+                }
+                $flags[] = $name;
+            }
+
+            continue;
+        }
+
+        return ['options' => $options, 'flags' => array_values(array_unique($flags)), 'image' => $word, 'args' => array_slice($words, $i + 1)];
+    }
+
+    return ['options' => $options, 'flags' => array_values(array_unique($flags)), 'image' => null, 'args' => []];
+}
+
+function learnp_is_space(string $char): bool
+{
+    return $char === ' ' || $char === "\t" || $char === "\n" || $char === "\r";
+}
+
 function learnp_describe(mixed $value): string
 {
     if (is_array($value)) {

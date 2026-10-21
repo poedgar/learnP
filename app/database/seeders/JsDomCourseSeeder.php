@@ -11,7 +11,7 @@ class JsDomCourseSeeder extends ContentCourseSeeder
             'title' => 'JavaScript and the DOM',
             'language' => 'javascript',
             'description' => 'Find and change things on a web page, respond to events, work with forms, and build a small app from state and a render function. The page you build appears as you code.',
-            'position' => 14,
+            'position' => 18,
         ];
     }
 

@@ -11,7 +11,7 @@ class JsAsyncCourseSeeder extends ContentCourseSeeder
             'title' => 'Async JavaScript',
             'language' => 'javascript',
             'description' => 'Callbacks and the event loop, promises, async and await, combining promises, and patterns such as async generators, cancellation, retries and queues.',
-            'position' => 13,
+            'position' => 17,
         ];
     }
 

@@ -15,6 +15,9 @@ const parsers = {
     css: () => cssLanguage.parser,
 };
 
+// Real framework code in lessons that can't run in the sandbox: highlighted as PHP, never runnable.
+parsers.laravel = parsers.php;
+
 function escapeHtml(text) {
     return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }

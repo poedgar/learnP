@@ -11,7 +11,7 @@ class RegexCourseSeeder extends ContentCourseSeeder
             'title' => 'Regular expressions',
             'language' => 'javascript',
             'description' => 'Patterns and character classes, quantifiers and anchors, groups, searching and replacing, lookarounds and Unicode, and regular expressions on real tasks, using JavaScript.',
-            'position' => 16,
+            'position' => 20,
         ];
     }
 

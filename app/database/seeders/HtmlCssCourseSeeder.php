@@ -11,7 +11,7 @@ class HtmlCssCourseSeeder extends ContentCourseSeeder
             'title' => 'HTML & CSS',
             'language' => 'html',
             'description' => 'Structure pages with meaningful HTML, build forms, then style them with selectors and the cascade, the box model, Flexbox and Grid, and make them work on any screen, with a live preview.',
-            'position' => 11,
+            'position' => 15,
         ];
     }
 

@@ -11,7 +11,7 @@ class TypeScriptCourseSeeder extends ContentCourseSeeder
             'title' => 'TypeScript',
             'language' => 'typescript',
             'description' => 'Types and inference, object types and interfaces, unions and narrowing, generics, classes and utility types, and advanced types, checked by the real TypeScript compiler.',
-            'position' => 15,
+            'position' => 19,
         ];
     }
 
