@@ -236,7 +236,7 @@ return [
                     $times = [2400, 80, 150, 95, 110, 900, 102, 120, 140, 130];
                     return expect_same([percentile($times, 50), percentile($times, 95), percentile($times, 100), percentile($times, 0), percentile([7], 99)], [120, 2400, 2400, 80, 7]);
                     PHP],
-                ['label' => 'A larger sample', 'code' => "return expect_same([percentile(range(1, 200), 95), percentile(range(1, 200), 99.5)], [190, 199]);"],
+                ['label' => 'A larger sample', 'code' => 'return expect_same([percentile(range(1, 200), 95), percentile(range(1, 200), 99.5)], [190, 199]);'],
                 ['label' => 'Bad input', 'code' => <<<'PHP'
                     $empty = expect_throws(InvalidArgumentException::class, fn () => percentile([], 50));
                     if ($empty !== true) return $empty;
@@ -275,8 +275,8 @@ return [
                 PHP,
             'hint' => '`array_slice($errorRates, -$minutes)` gives the last readings.',
             'checks' => [
-                ['label' => 'A sustained problem', 'code' => "return expect_same([shouldAlert([0.01, 0.03, 0.04, 0.05, 0.03, 0.06], 0.02, 5), shouldAlert([0.01, 0.03, 0.04, 0.05], 0.02, 3)], [true, true]);"],
-                ['label' => 'A blip', 'code' => "return expect_same([shouldAlert([0.01, 0.01, 0.30, 0.01, 0.01], 0.02, 3), shouldAlert([0.05, 0.05, 0.05, 0.02], 0.02, 3), shouldAlert([0.5, 0.5], 0.02, 5)], [false, false, false]);"],
+                ['label' => 'A sustained problem', 'code' => 'return expect_same([shouldAlert([0.01, 0.03, 0.04, 0.05, 0.03, 0.06], 0.02, 5), shouldAlert([0.01, 0.03, 0.04, 0.05], 0.02, 3)], [true, true]);'],
+                ['label' => 'A blip', 'code' => 'return expect_same([shouldAlert([0.01, 0.01, 0.30, 0.01, 0.01], 0.02, 3), shouldAlert([0.05, 0.05, 0.05, 0.02], 0.02, 3), shouldAlert([0.5, 0.5], 0.02, 5)], [false, false, false]);'],
             ],
         ],
         [

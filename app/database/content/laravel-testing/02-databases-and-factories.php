@@ -182,7 +182,7 @@ return [
             'hint' => 'A `for` loop from 1 to `$count`, calling the definition each time.',
             'checks' => [
                 ['label' => 'Numbers each model', 'code' => "return expect_same(makeMany(fn (int \$n) => ['title' => \"Book \$n\"], 3), [['title' => 'Book 1'], ['title' => 'Book 2'], ['title' => 'Book 3']]);"],
-                ['label' => 'Zero or fewer', 'code' => "return expect_same([makeMany(fn (\$n) => \$n, 0), makeMany(fn (\$n) => \$n, -2)], [[], []]);"],
+                ['label' => 'Zero or fewer', 'code' => 'return expect_same([makeMany(fn ($n) => $n, 0), makeMany(fn ($n) => $n, -2)], [[], []]);'],
             ],
         ],
         [
@@ -434,7 +434,7 @@ return [
                     $db->rollBack();
                     return expect_same([$db->count('books'), $db->insert('books', ['title' => 'Next'])], [1, 2]);
                     PHP],
-                ['label' => 'No transaction, no rollback', 'code' => "return expect_throws(LogicException::class, fn () => (new TestDatabase())->rollBack());"],
+                ['label' => 'No transaction, no rollback', 'code' => 'return expect_throws(LogicException::class, fn () => (new TestDatabase())->rollBack());'],
             ],
         ],
     ],

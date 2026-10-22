@@ -385,8 +385,8 @@ return [
                 PHP,
             'hint' => 'Work out the low and high ends, then `low + (high - low) * random`.',
             'checks' => [
-                ['label' => 'Spreads evenly', 'code' => "return expect_same([jitteredTtl(600, 0.1, 0.0), jitteredTtl(600, 0.1, 0.5), jitteredTtl(600, 0.1, 1.0), jitteredTtl(600, 0.1, 0.25)], [540, 600, 660, 570]);"],
-                ['label' => 'Never below 1', 'code' => "return expect_same([jitteredTtl(1, 1.0, 0.0), jitteredTtl(10, 0.0, 0.9)], [1, 10]);"],
+                ['label' => 'Spreads evenly', 'code' => 'return expect_same([jitteredTtl(600, 0.1, 0.0), jitteredTtl(600, 0.1, 0.5), jitteredTtl(600, 0.1, 1.0), jitteredTtl(600, 0.1, 0.25)], [540, 600, 660, 570]);'],
+                ['label' => 'Never below 1', 'code' => 'return expect_same([jitteredTtl(1, 1.0, 0.0), jitteredTtl(10, 0.0, 0.9)], [1, 10]);'],
             ],
         ],
         [
@@ -410,8 +410,8 @@ return [
                 PHP,
             'hint' => 'It\'s one comparison; `log()` is the natural logarithm.',
             'checks' => [
-                ['label' => 'Close to expiry, slow values refresh early', 'code' => "return expect_same([shouldRefreshEarly(995, 1000, 2.0, 1.0, 0.05), shouldRefreshEarly(995, 1000, 0.1, 1.0, 0.05), shouldRefreshEarly(900, 1000, 2.0, 1.0, 0.05)], [true, false, false]);"],
-                ['label' => 'Expired always refreshes', 'code' => "return expect_same([shouldRefreshEarly(1000, 1000, 1.0, 1.0, 1.0), shouldRefreshEarly(1001, 1000, 0.0, 1.0, 0.5)], [true, true]);"],
+                ['label' => 'Close to expiry, slow values refresh early', 'code' => 'return expect_same([shouldRefreshEarly(995, 1000, 2.0, 1.0, 0.05), shouldRefreshEarly(995, 1000, 0.1, 1.0, 0.05), shouldRefreshEarly(900, 1000, 2.0, 1.0, 0.05)], [true, false, false]);'],
+                ['label' => 'Expired always refreshes', 'code' => 'return expect_same([shouldRefreshEarly(1000, 1000, 1.0, 1.0, 1.0), shouldRefreshEarly(1001, 1000, 0.0, 1.0, 0.5)], [true, true]);'],
             ],
         ],
     ],

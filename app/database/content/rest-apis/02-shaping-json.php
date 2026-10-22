@@ -171,7 +171,7 @@ return [
             'hint' => '`(int) (19.99 * 100)` is 1998, because the float is a hair under 1999. Round before casting.',
             'checks' => [
                 ['label' => 'Exact pence', 'code' => "return expect_same([money(9.99), money('12.5'), money(19.99)['amount'], money(0.29)['amount'], money(3, 'EUR')], [['amount' => 999, 'currency' => 'GBP'], ['amount' => 1250, 'currency' => 'GBP'], 1999, 29, ['amount' => 300, 'currency' => 'EUR']]);"],
-                ['label' => 'No negative prices', 'code' => "return expect_throws(InvalidArgumentException::class, fn () => money(-1));"],
+                ['label' => 'No negative prices', 'code' => 'return expect_throws(InvalidArgumentException::class, fn () => money(-1));'],
             ],
         ],
         [

@@ -256,7 +256,7 @@ return [
                 PHP,
             'hint' => 'Use `max()` of the samples, not the average: a pool sized for the average runs out of memory under heavy requests.',
             'checks' => [
-                ['label' => 'Sized for the largest worker', 'code' => "return expect_same([maxChildren(4096, 1024, [52, 61, 70, 58]), maxChildren(2048, 512, [40])], [43, 38]);"],
+                ['label' => 'Sized for the largest worker', 'code' => 'return expect_same([maxChildren(4096, 1024, [52, 61, 70, 58]), maxChildren(2048, 512, [40])], [43, 38]);'],
                 ['label' => 'Impossible sizes', 'code' => <<<'PHP'
                     $none = expect_throws(InvalidArgumentException::class, fn () => maxChildren(4096, 1024, []));
                     if ($none !== true) return $none;
@@ -296,7 +296,7 @@ return [
             'hint' => 'Three checks in order. A restart signal from before the worker started is an old one it can ignore.',
             'checks' => [
                 ['label' => 'Each reason', 'code' => "return expect_same([restartReason(1000, 1500, 3600, 1200, 50, 128), restartReason(1000, 1500, 3600, 900, 130, 128), restartReason(1000, 4600, 3600, null, 50, 128), restartReason(1000, 1500, 3600, 900, 50, 128)], ['restart signal', 'memory', 'max time', null]);"],
-                ['label' => 'No time limit', 'code' => "return expect_same(restartReason(0, 999999, 0, null, 10, 128), null);"],
+                ['label' => 'No time limit', 'code' => 'return expect_same(restartReason(0, 999999, 0, null, 10, 128), null);'],
             ],
         ],
         [
