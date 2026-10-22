@@ -1,8 +1,6 @@
-import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
-import { api, baseUrl } from '../api/client';
+import { api } from '../api/client';
 import type { User } from '../api/types';
 import { flushSync, startSync, stopSync } from '../sync/sync';
 import { clearToken, loadToken, saveToken } from './token';
@@ -68,39 +66,9 @@ export async function refreshUser(): Promise<void> {
   if (user) useAuthStore.setState({ user });
 }
 
-/**
- * Signs in with GitHub in an in-app browser. The server sends the browser back to this app's
- * own URL with a one-time code, which is exchanged for an API token. Returns false if the
- * person closed the browser.
- */
-export async function signInWithGithub(): Promise<boolean> {
-  const returnTo = Linking.createURL('auth/github');
-  const result = await WebBrowser.openAuthSessionAsync(
-    `${baseUrl()}/auth/github?return_to=${encodeURIComponent(returnTo)}`,
-    returnTo,
-  );
-  if (result.type !== 'success') return false;
-
-  const { queryParams } = Linking.parse(result.url);
-  if (typeof queryParams?.error === 'string') throw new Error(GITHUB_ERRORS[queryParams.error] ?? GITHUB_ERRORS['github-failed']);
-  if (typeof queryParams?.code !== 'string') throw new Error(GITHUB_ERRORS['github-failed']);
-
-  const { user, token } = await api.exchangeGithubCode(queryParams.code, DEVICE_NAME);
-  await saveToken(token);
-  signedIn(user);
-
-  return true;
-}
-
-const GITHUB_ERRORS: Record<string, string> = {
-  'github-email': 'GitHub did not share an email address with us. Make one visible to apps in your GitHub settings, then try again.',
-  'github-linked': 'That email address already belongs to an account linked to a different GitHub account.',
-  'github-failed': 'GitHub sign-in did not finish. Please try again.',
-};
-
 /** Deletes the account for good; this device's copy of its progress goes with it. */
-export async function deleteAccount(confirmation: { password: string } | { confirmation: string }): Promise<void> {
-  await api.deleteAccount(confirmation);
+export async function deleteAccount(password: string): Promise<void> {
+  await api.deleteAccount({ password });
   await clearToken();
   useAuthStore.setState({ user: null });
   stopSync({ clear: true });

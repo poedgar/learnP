@@ -1,9 +1,9 @@
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert, ScrollView, Share, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { api, ApiError, baseUrl } from '../api/client';
-import { deleteAccount, refreshUser, register, signIn, signInWithGithub, signOut, useAuthStore } from '../auth/store';
+import { deleteAccount, refreshUser, register, signIn, signOut, useAuthStore } from '../auth/store';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
 
@@ -18,15 +18,10 @@ export function AccountScreen() {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [github, setGithub] = useState(false);
   const [notice, setNotice] = useState('');
   const [confirmation, setConfirmation] = useState('');
 
   const registering = mode === 'register';
-
-  useEffect(() => {
-    api.authOptions().then((options) => setGithub(options.github), () => setGithub(false));
-  }, []);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -122,21 +117,17 @@ export function AccountScreen() {
             {"This deletes your account and all your progress for good, on every device. It can't be undone."}
           </Text>
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.ink }]}>
-              {user.has_password ? 'Your password' : 'Type your email address to confirm'}
-            </Text>
+            <Text style={[styles.label, { color: theme.ink }]}>Your password</Text>
             <TextInput
-              accessibilityLabel={user.has_password ? 'Your password' : 'Type your email address to confirm'}
+              accessibilityLabel="Your password"
               value={confirmation}
               onChangeText={setConfirmation}
-              secureTextEntry={user.has_password}
+              secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
-              style={[styles.input, { color: theme.ink, backgroundColor: theme.background, borderColor: errors.password || errors.confirmation ? theme.bad : theme.line }]}
+              style={[styles.input, { color: theme.ink, backgroundColor: theme.background, borderColor: errors.password ? theme.bad : theme.line }]}
             />
-            {(errors.password ?? errors.confirmation) ? (
-              <Text style={[styles.error, { color: theme.bad }]}>{(errors.password ?? errors.confirmation)[0]}</Text>
-            ) : null}
+            {errors.password ? <Text style={[styles.error, { color: theme.bad }]}>{errors.password[0]}</Text> : null}
           </View>
           <Button
             title="Delete my account"
@@ -149,7 +140,7 @@ export function AccountScreen() {
                   style: 'destructive',
                   onPress: () =>
                     run(async () => {
-                      await deleteAccount(user.has_password ? { password: confirmation } : { confirmation });
+                      await deleteAccount(confirmation);
                       router.back();
                     }),
                 },
@@ -169,18 +160,6 @@ export function AccountScreen() {
       <Text style={[styles.text, { color: theme.muted }]}>
         {`An account keeps your progress and review schedule in step across devices and the web app. Whatever you've done on this device so far comes with you.`}
       </Text>
-
-      {github ? (
-        <Button
-          title="Continue with GitHub"
-          disabled={busy}
-          onPress={() =>
-            run(async () => {
-              if (await signInWithGithub()) router.back();
-            })
-          }
-        />
-      ) : null}
 
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.line }]}>
         {registering ? field('name', 'Name', { autoCapitalize: 'words', autoComplete: 'name', textContentType: 'name' }) : null}

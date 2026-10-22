@@ -1,7 +1,6 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { api } from '../api';
 import { register, signIn } from '../auth';
 
 const props = defineProps({
@@ -16,20 +15,6 @@ const form = reactive({ name: '', email: '', password: '', password_confirmation
 const errors = ref({});
 const message = ref('');
 const busy = ref(false);
-const github = ref(false);
-
-onMounted(async () => {
-    github.value = (await api.authOptions().catch(() => ({ github: false }))).github;
-});
-
-// GitHub sign-in sends people back here with ?error= when it can't finish.
-const githubErrors = {
-    'github-email': 'GitHub did not share an email address with us. Make one visible to apps in your GitHub settings, then try again.',
-    'github-linked': 'That email address already belongs to an account linked to a different GitHub account.',
-    'github-failed': 'GitHub sign-in did not finish. Please try again.',
-};
-const githubError = computed(() => githubErrors[route.query.error] ?? '');
-
 // Only paths inside the app, so a crafted link can't send someone elsewhere after signing in.
 const destination = computed(() => {
     const redirect = route.query.redirect;
@@ -66,10 +51,6 @@ async function submit() {
             An account keeps your progress and review schedule in step across browsers and the mobile app. Whatever
             you've done in this browser so far comes with you.
         </p>
-
-        <p v-if="githubError" class="error" role="alert">{{ githubError }}</p>
-
-        <a v-if="github" class="btn" href="/auth/github">Continue with GitHub</a>
 
         <form class="card" novalidate @submit.prevent="submit">
             <div v-if="registering" class="field">

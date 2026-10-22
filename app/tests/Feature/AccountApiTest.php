@@ -12,8 +12,6 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
-use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\User as SocialiteUser;
 use Tests\TestCase;
 
 class AccountApiTest extends TestCase
@@ -176,100 +174,5 @@ class AccountApiTest extends TestCase
 
         $this->assertGuest('web');
         $this->assertDatabaseMissing('users', ['email' => 'ada@example.com']);
-    }
-
-    public function test_github_accounts_confirm_deletion_with_their_email(): void
-    {
-        $user = User::factory()->create(['email' => 'ada@example.com', 'password' => null, 'github_id' => '42']);
-        Sanctum::actingAs($user);
-
-        $this->deleteJson('/api/account', ['confirmation' => 'bob@example.com'])->assertUnprocessable()->assertJsonValidationErrors('confirmation');
-        $this->deleteJson('/api/account', ['confirmation' => 'ADA@example.com'])->assertNoContent();
-
-        $this->assertModelMissing($user);
-    }
-
-    public function test_github_sign_in_is_hidden_until_configured(): void
-    {
-        config(['services.github.client_id' => null]);
-        $this->getJson('/api/auth/options')->assertExactJson(['github' => false]);
-        $this->get('/auth/github')->assertNotFound();
-
-        config(['services.github.client_id' => 'id', 'services.github.client_secret' => 'secret']);
-        $this->getJson('/api/auth/options')->assertExactJson(['github' => true]);
-    }
-
-    public function test_github_creates_a_confirmed_account_and_signs_in_on_the_web(): void
-    {
-        $this->fakeGitHub(id: '42', email: 'Ada@Example.com');
-
-        $this->get('/auth/github/callback')->assertRedirect('/');
-
-        $user = User::where('github_id', '42')->sole();
-        $this->assertSame('ada@example.com', $user->email);
-        $this->assertTrue($user->hasVerifiedEmail());
-        $this->assertFalse($user->hasPassword());
-        $this->assertAuthenticatedAs($user, 'web');
-    }
-
-    public function test_github_links_an_existing_account_with_the_same_email(): void
-    {
-        $user = User::factory()->create(['email' => 'ada@example.com']);
-        $this->fakeGitHub(id: '42', email: 'ada@example.com');
-
-        $this->get('/auth/github/callback')->assertRedirect('/');
-
-        $this->assertSame('42', $user->fresh()->github_id);
-        $this->assertSame(1, User::count());
-    }
-
-    public function test_github_never_relinks_an_account_to_another_github_user(): void
-    {
-        User::factory()->create(['email' => 'ada@example.com', 'github_id' => '7']);
-        $this->fakeGitHub(id: '42', email: 'ada@example.com');
-
-        $this->get('/auth/github/callback')->assertRedirect('/sign-in?error=github-linked');
-        $this->assertGuest('web');
-    }
-
-    public function test_the_mobile_app_gets_a_one_time_code_for_a_token(): void
-    {
-        $this->fakeGitHub(id: '42', email: 'ada@example.com');
-
-        $this->get('/auth/github?return_to='.urlencode('learnp://auth/github'));
-        $location = $this->get('/auth/github/callback')->headers->get('Location');
-
-        $this->assertStringStartsWith('learnp://auth/github?code=', $location);
-        $this->assertGuest('web');
-        parse_str(parse_url($location, PHP_URL_QUERY), $query);
-
-        $this->postJson('/api/auth/github/exchange', ['code' => $query['code'], 'device_name' => 'phone'])
-            ->assertOk()
-            ->assertJsonPath('user.email', 'ada@example.com')
-            ->assertJsonStructure(['token']);
-
-        // A code works only once.
-        $this->postJson('/api/auth/github/exchange', ['code' => $query['code'], 'device_name' => 'phone'])->assertUnprocessable();
-    }
-
-    public function test_codes_are_never_sent_to_other_apps(): void
-    {
-        $this->fakeGitHub(id: '42', email: 'ada@example.com');
-
-        $this->get('/auth/github?return_to='.urlencode('https://evil.example/steal'));
-
-        $this->get('/auth/github/callback')->assertRedirect('/');
-    }
-
-    private function fakeGitHub(string $id, string $email): void
-    {
-        config(['services.github.client_id' => 'id', 'services.github.client_secret' => 'secret']);
-
-        Socialite::fake('github', (new SocialiteUser)->map([
-            'id' => $id,
-            'nickname' => 'ada',
-            'name' => 'Ada Lovelace',
-            'email' => $email,
-        ]));
     }
 }

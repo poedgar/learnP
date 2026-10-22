@@ -27,7 +27,6 @@ class AccountController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'email_verified_at' => $user->email_verified_at?->toIso8601String(),
-                'signs_in_with_github' => $user->github_id !== null,
                 'created_at' => $user->created_at?->toIso8601String(),
             ],
             'progress' => $user->lessonProgress()->with('lesson.course')->get()->map(fn (LessonProgress $progress) => [
@@ -40,24 +39,14 @@ class AccountController extends Controller
         ], 200, ['Content-Disposition' => 'attachment; filename="learnp-data.json"'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
-    /**
-     * Deletes the account and everything that belongs to it. Accounts with a password must
-     * give it; accounts made with GitHub type their email address to confirm instead.
-     */
+    /** Deletes the account and everything that belongs to it, once the password is given. */
     public function destroy(Request $request): Response
     {
         $user = $request->user();
 
-        if ($user->hasPassword()) {
-            $request->validate(['password' => ['required', 'string']]);
-            if (! Hash::check($request->input('password'), $user->password)) {
-                throw ValidationException::withMessages(['password' => 'That password is not right.']);
-            }
-        } else {
-            $request->validate(['confirmation' => ['required', 'string']]);
-            if (strtolower(trim($request->input('confirmation'))) !== strtolower($user->email)) {
-                throw ValidationException::withMessages(['confirmation' => 'Type your email address to confirm.']);
-            }
+        $request->validate(['password' => ['required', 'string']]);
+        if (! Hash::check($request->input('password'), $user->password)) {
+            throw ValidationException::withMessages(['password' => 'That password is not right.']);
         }
 
         // Sign the browser out first: logging out saves the user (it renews the remember-me

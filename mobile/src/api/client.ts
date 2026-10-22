@@ -90,13 +90,9 @@ export const api = {
   progress: () => request<ProgressState>('GET', 'progress'),
   saveProgress: (state: ProgressState) => request<null>('PUT', 'progress', state),
   mergeProgress: (state: ProgressState) => request<ProgressState>('POST', 'progress/merge', state),
-  authOptions: () => request<{ github: boolean }>('GET', 'auth/options'),
-  exchangeGithubCode: (code: string, device_name: string) =>
-    request<AuthResponse>('POST', 'auth/github/exchange', { code, device_name }),
   resendVerification: () => request<{ message: string }>('POST', 'email/verification-notification'),
   exportAccount: () => request<Record<string, unknown>>('GET', 'account/export'),
-  deleteAccount: (confirmation: { password: string } | { confirmation: string }) =>
-    request<null>('DELETE', 'account', confirmation),
+  deleteAccount: (body: { password: string }) => request<null>('DELETE', 'account', body),
   tracks: () => request<{ data: Track[] }>('GET', 'tracks').then((r) => r.data),
   search: (query: string) => request<{ data: SearchResult[] }>('GET', `search?q=${segment(query)}`).then((r) => r.data),
   solution: (challengeId: number) => request<{ solution: string }>('GET', `challenges/${challengeId}/solution`).then((r) => r.solution),

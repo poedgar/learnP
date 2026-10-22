@@ -14,7 +14,6 @@ use App\Http\Controllers\Api\SandboxController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\TrackController;
 use App\Http\Controllers\EmailVerificationController;
-use App\Http\Controllers\GitHubController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('courses', [CourseController::class, 'index'])->name('courses.index');
@@ -44,10 +43,7 @@ Route::middleware('throttle:auth')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('login');
     Route::post('forgot-password', [PasswordResetController::class, 'sendLink'])->name('password.email');
     Route::post('reset-password', [PasswordResetController::class, 'reset'])->name('password.store');
-    Route::post('auth/github/exchange', [GitHubController::class, 'exchange'])->name('github.exchange');
 });
-
-Route::get('auth/options', [AuthController::class, 'options'])->name('auth.options');
 
 // Open to guests, who get null: the apps ask on every launch, and a 401 there isn't an error.
 Route::get('user', [AuthController::class, 'show'])->name('user');

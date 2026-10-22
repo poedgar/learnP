@@ -43,7 +43,7 @@ async function remove() {
     deleting.value = true;
     deleteError.value = '';
     try {
-        await deleteAccount(auth.user.has_password ? { password: confirmation.value } : { confirmation: confirmation.value });
+        await deleteAccount({ password: confirmation.value });
         router.push({ name: 'home' });
     } catch (e) {
         deleteError.value = Object.values(e.errors ?? {})[0]?.[0] ?? e.message;
@@ -61,10 +61,7 @@ async function remove() {
 
         <section class="card" aria-labelledby="profile-heading">
             <h2 id="profile-heading">{{ auth.user.name }}</h2>
-            <p>
-                {{ auth.user.email }}
-                <template v-if="auth.user.github"> · signs in with GitHub</template>
-            </p>
+            <p>{{ auth.user.email }}</p>
             <template v-if="!auth.user.email_verified">
                 <p class="notice warning">
                     Please confirm your email address with the link we sent you, so you can reset your password if you
@@ -88,14 +85,12 @@ async function remove() {
                 can't be undone.
             </p>
             <form class="field" novalidate @submit.prevent="remove">
-                <label for="delete-confirmation">
-                    {{ auth.user.has_password ? 'Your password' : 'Type your email address to confirm' }}
-                </label>
+                <label for="delete-confirmation">Your password</label>
                 <input
                     id="delete-confirmation"
                     v-model="confirmation"
-                    :type="auth.user.has_password ? 'password' : 'email'"
-                    :autocomplete="auth.user.has_password ? 'current-password' : 'off'"
+                    type="password"
+                    autocomplete="current-password"
                     required
                     :aria-invalid="Boolean(deleteError)"
                     aria-describedby="delete-error"
