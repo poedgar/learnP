@@ -29,6 +29,9 @@ engine in `../app/resources/js/lib/js`, run `npm run sync-js-runtime` here.
 
 Changing `.env` needs a restart of `npx expo start`.
 
+`.env` isn't committed, so EAS builds never see it: the `preview` and `production` profiles in
+`eas.json` set `EXPO_PUBLIC_API_URL` to the live server instead.
+
 ## How it's built
 
 - `app/`: routes (`/`, `/courses/[course]`, `/courses/[course]/lessons/[lesson]?step=…`). Deep links use the scheme `learnp://`.
